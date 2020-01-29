@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.place.service.mapper.CommonMapper">
+	<!-- 장소 키워드 suggest search -->
+    <select id="selectSuggestKeyword" resultType="String" parameterType="String">
+			SELECT 
+				keyword
+			FROM places_tb
+			where 1 = 1
+				and  keyword like  '%' || #{keyword} || '%'
+			group by keyword
+	</select>
+	
+   	<!-- 지역 검색 -->
+   	<select id="selectArea" resultType="java.util.HashMap">
+			select 
+				parent_area, 
+				area, 
+				area_name 
+			from 
+				area_tb 
+			where 
+				del_flag != 'Y'
+			order by parent_area, area
+	</select>
+	
+   	<!-- 북마크 포털 리뷰 검색(youtube) -->
+   	<select id="selectBookmarkPortalReviews" resultType="java.util.HashMap">
+			select
+				bookmark.place_id,
+				bookmark.gubun,
+				place.place_name,
+				review.review_id,
+				review.write_date,
+				review.y_title,
+				review.y_description,
+				review.y_video_id,
+				review.y_thumbnail_url
+			from
+				bookmark_tb bookmark
+			join places_tb place on
+				bookmark.place_id = place.place_id
+				and place.delete_flag != 'Y'
+			join portal_review_tb review on
+				bookmark.id = review.review_id
+				and review.del_flag != 'Y'
+			where 
+				1 = 1
+				and bookmark.user_id = #{user_id}
+				and bookmark.gubun = #{gubun}
+				and bookmark.del_flag != 'Y'
+	</select>
+	
+   	<!-- 북마크 포털 블로그 검색(naver, tistory) -->
+   	<select id="selectBookmarkPortalBlogs" resultType="java.util.HashMap">
+			select 
+				bookmark.place_id,
+				bookmark.gubun,
+				place.place_name,
+				review.review_id,
+				review.write_date,
+				review.author,
+				review.url,
+				review.title,
+				review.description,
+				review.thumbnail_url
+			from
+				bookmark_tb bookmark
+			join places_tb place on
+				bookmark.place_id = place.place_id
+				and place.delete_flag != 'Y'
+			join portal_blog_tb review on
+				bookmark.id = review.review_id
+				and review.del_flag != 'Y'
+			where 
+				1 = 1
+				and bookmark.user_id = #{user_id}
+				and bookmark.gubun = #{gubun}
+				and bookmark.del_flag != 'Y'
+	</select>
+	
+   	<!-- 북마크 자체 리뷰 검색 -->
+   	<select id="selectBookmarkAppReviews" resultType="java.util.HashMap">
+			select
+				bookmark.place_id,
+				bookmark.gubun,
+				place.place_name,
+				review.review_id,
+				review.review_contents,
+				review.review_user_id,
+				review.like_count,
+				review.rating_point,
+				review.add_date,
+				review.add_time
+			from
+				bookmark_tb bookmark
+			join places_tb place on
+				bookmark.place_id = place.place_id
+				and place.delete_flag != 'Y'
+			join app_review_tb review on
+				bookmark.id = review.review_id
+				and review.del_flag != 'Y'
+			where 
+				1 = 1
+				and bookmark.user_id = #{user_id}
+				and bookmark.gubun = #{gubun}
+				and bookmark.del_flag != 'Y'
+	</select>
+	
+   	<!-- 북마크 매장 검색 -->
+   	<select id="selectBookmarkPlaces" resultType="java.util.HashMap">
+			select
+				bookmark.place_id,
+				bookmark.gubun,
+				place.place_name,
+				place.open_hours,
+				place.category,
+				avgReviewRating(bookmark.place_id) as rating_point,
+				getthumbnail(bookmark.place_id) as thumbnail
+			from
+				bookmark_tb bookmark
+			join places_tb place on
+				bookmark.place_id = place.place_id
+				and place.delete_flag != 'Y'
+			where
+				1 = 1
+				and bookmark.user_id = #{user_id}
+				and bookmark.gubun = #{gubun}
+				and bookmark.del_flag != 'Y'
+	</select>
+	
+	<!-- 북마크 리뷰 삽입(youtube, naver, tistory, app) -->
+	<insert id="insertBookmarkReviewBlog" parameterType="HashMap">
+		insert into
+			bookmark_tb 
+			(place_id,
+			add_user_id,
+			add_time,
+			add_date,
+			del_flag,
+			gubun,
+			user_id,
+			id)
+		values(
+			#{place_id},
+			#{user_id},
+			current_time,
+			current_date,
+			'N',
+			#{gubun},
+			#{user_id},
+			#{id});
+	</insert>
+	
+	<!-- 북마크 매장 삽입 -->
+	<insert id="insertBookmarkPlaces" parameterType="HashMap">
+		insert into
+			bookmark_tb 
+			(place_id,
+			add_user_id,
+			add_time,
+			add_date,
+			del_flag,
+			gubun,
+			user_id)
+		values(
+			#{place_id},
+			#{user_id},
+			current_time,
+			current_date,
+			'N',
+			#{gubun},
+			#{user_id});
+	</insert>
+	
+	<!-- 매장 북마크 카운트 -->
+	<select id="selectBookmarkPlaceCount" resultType="Int" parameterType="HashMap">
+		select 
+			count(*) as cnt
+		from
+			bookmark_tb
+		where 1=1
+			and user_id = #{user_id}
+			and place_id = #{place_id}
+			and del_flag != 'Y'
+	</select>
+	
+	<!-- 리뷰 북마크 카운트 -->
+	<select id="selectBookmarkReviewBlogCount" resultType="Int" parameterType="HashMap">
+		select 
+			count(*) as cnt
+		from
+			bookmark_tb
+		where 1=1
+			and user_id = #{user_id}
+			and id = #{id}
+			and gubun = #{gubun}
+			and del_flag != 'Y'
+	</select>
+	
+	<!-- 북마크 매장 삭제 -->
+	<update id="updateBookmarkPlaces" parameterType="HashMap">
+		update
+			bookmark_tb
+		set
+			del_flag = 'Y'
+		where
+			1 = 1
+			and place_id = #{place_id}
+			and del_flag = 'N'
+			and gubun = #{gubun}
+			and user_id = #{user_id}
+	</update>
+	
+	<!-- 북마크 리뷰 삭제 -->
+	<update id="updateBookmarkReviewBlog" parameterType="HashMap">
+		update
+			bookmark_tb
+		set
+			del_flag = 'Y'
+		where
+			1 = 1
+			and place_id = #{place_id}
+			and del_flag = 'N'
+			and gubun = #{gubun}
+			and user_id = #{user_id}
+			and id = #{id}
+	</update>
+</mapper>

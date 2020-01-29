@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.place.service.mapper.ReviewMapper">
+
+	<!-- 장소데이터 insert -->
+	<insert id="insertReview" parameterType="com.place.dto.PortalReviewDto">
+		INSERT INTO portal_review_tb(
+		review_id,
+		place_id,
+		place_seq,
+		author,
+		portal,
+		del_flag,
+		write_time,
+		write_date,
+		add_date,
+		add_time,
+		<choose>
+			<when test='portal != null and portal.equals("G")'>
+				g_content,
+				g_rating
+			</when>
+			<when test='portal != null and portal.equals("Y")'>
+				y_title,
+				y_description,
+				y_video_id,
+				y_thumbnail_url
+			</when>
+		</choose>
+		)
+		VALUES(
+		'PR' || nextval('portal_review_id')
+		, #{place_id}
+		, #{place_seq}
+		, #{author}
+		, #{portal}
+		, 'N'
+		, #{write_time}::time
+		, to_date(#{write_date},'yyyy-MM-dd')
+		, current_date
+		, current_time
+		<choose>
+			<when test='portal != null and portal.equals("G")'>
+				, TEXT(#{g_content})
+				, #{g_rating}
+			</when>
+			<when test='portal != null and portal.equals("Y")'>
+				, #{y_title}
+				, #{y_description}
+				, #{y_video_id}
+				, #{y_thumbnail_url}
+			</when>
+		</choose>
+		)
+	</insert>
+	
+	<!-- review 전체 검색 -->
+	<select id="selectReviews" resultType="com.place.dto.PortalReviewDto" parameterType="com.place.dto.PlaceDetailDto">
+		(SELECT
+			review_id,
+			place_id,
+			place_seq,
+			author,
+			y_description,
+			y_title,
+			y_video_id,
+			y_thumbnail_url,
+			g_content,
+			g_rating,
+			portal,
+			write_date
+		from portal_review_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		and del_flag != 'Y'
+		and portal = 'Y'
+		order by write_date desc
+		limit 5)
+		union all
+		(SELECT
+			review_id,
+			place_id,
+			place_seq,
+			author,
+			y_description,
+			y_title,
+			y_video_id,
+			y_thumbnail_url,
+			g_content,
+			g_rating,
+			portal,
+			write_date
+		from portal_review_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		and del_flag != 'Y'
+		and portal = 'G'
+		order by write_date desc
+		limit 5)
+	</select>
+
+	<!-- 포털 별 리뷰 검색 -->
+	<select id="selectPortalReview" resultType="com.place.dto.PortalReviewDto" parameterType="com.place.dto.PortalReviewDto">
+		SELECT
+			review_id,
+			place_id,
+			place_seq,
+			author,
+			y_description,
+			y_title,
+			y_video_id,
+			y_thumbnail_url,
+			g_content,
+			g_rating,
+			portal
+		FROM portal_review_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		<choose>
+			<when test='portal != null and portal.equals("G")'>
+				and portal = 'G'
+			</when>
+			<when test='portal != null and portal.equals("Y")'>
+				and portal = 'Y'
+			</when>
+		</choose>
+		limit 5
+	</select>
+
+	<!-- 포털 리뷰 Count -->
+	<select id="selectPortalReviewCount" resultType="int" parameterType="com.place.dto.PortalReviewDto">
+		SELECT
+		count(*) as cnt
+		FROM portal_review_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		and portal = #{portal}
+		<choose>
+			<when test='portal != null and portal.equals("G")'>
+				and author = #{author}
+			</when>
+			<when test='portal != null and portal.equals("Y")'>
+				and y_video_id = #{y_video_id}
+			</when>
+		</choose>
+		and del_flag != 'Y'
+	</select>
+	
+	<!-- 앱 리뷰 Count -->
+	<select id="selectAppReviewCount" resultType="int" parameterType="com.place.dto.AppReviewDto">
+		SELECT
+		count(*) as cnt
+		FROM app_review_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		and review_user_id = #{review_user_id}
+		and del_flag != 'Y'
+	</select>
+	
+	<!--  appReview Insert --> 
+	<insert id="insertAppReview" parameterType="com.place.dto.AppReviewDto">
+		INSERT INTO 
+			app_review_tb(
+				review_id,
+				review_contents,
+				review_user_id,
+				attach_number,
+				like_count,
+				rating_point,
+				add_date,
+				add_time,
+				add_user_id,
+				update_date,
+				update_time,
+				update_user_id,
+				del_flag,
+				place_id
+				)
+			VALUES(
+			'RV' || nextval('app_review_id')
+			, #{review_contents}
+			, #{review_user_id}
+			<choose>
+				<when test='file_flag != null and file_flag == true'>
+					, 'AT' || nextval('attachment_id')
+				</when>
+				<otherwise>
+					, null
+				</otherwise>
+			</choose>
+			, '0'
+			, #{rating_point}
+			, current_date
+			, current_time
+			, #{review_user_id}
+			, current_date
+			, current_time
+			, #{review_user_id}
+			, 'N'
+			, #{place_id}
+			)
+	</insert>
+	
+	<!--  appReview attachment Insert --> 
+	<insert id="insertAppReviewAttachment" parameterType="List">
+		INSERT INTO 
+			attachments_list_tb(
+				attach_number,
+				attach_seq,
+				attach_name,
+				attach_route,
+				attach_extension,
+				attach_size,
+				user_id,
+				add_date,
+				add_time,
+				add_user_id,
+				update_date,
+				update_time,
+				update_user_id,
+				del_flag
+				)
+			VALUES(
+			#{attach_number}
+			, #{attach_seq}
+			, #{attach_name}
+			, #{attach_route}
+			, #{attach_extension}
+			, #{attach_size}
+			, #{review_user_id}
+			, current_date
+			, current_time
+			, #{review_user_id}
+			, current_date
+			, current_time
+			, #{review_user_id}
+			, 'N'
+			)
+	</insert>
+	
+	
+	<!-- 앱 리뷰 검색 -->
+	<select id="selectAppReview"	resultType="com.place.dto.AppReviewDto"	parameterType="com.place.dto.AppReviewDto">
+		select
+			app_review.place_id,
+			app_review.review_id,
+			app_review.review_contents,
+			app_review.review_user_id,
+			app_review.like_count,
+			app_review.rating_point,
+			app_review.attach_number,
+			attachment.attach_seq,
+			attachment.attach_name
+		from
+			app_review_tb app_review
+		left join 
+			attachments_list_tb attachment
+		on 
+			app_review.attach_number = attachment.attach_number	
+		where 1 = 1
+			and place_id = #{place_id}
+			and review_user_id = #{review_user_id}
+			and app_review.del_flag != 'Y'
+	</select>
+	
+	<!-- 앱 리뷰 전체 검색 -->
+	<select id="selectAppReviewList"	resultType="com.place.dto.AppReviewDto"	parameterType="com.place.dto.AppReviewDto">
+		select
+			app_review.place_id,
+			app_review.review_id,
+			app_review.review_contents,
+			app_review.review_user_id,
+			app_review.like_count,
+			app_review.rating_point,
+			app_review.attach_number,
+			attachment.attach_seq,
+			attachment.attach_name
+		from
+			app_review_tb app_review
+		left join 
+			attachments_list_tb attachment
+		on 
+			app_review.attach_number = attachment.attach_number	
+		where 1=1
+			and	app_review.place_id = #{place_id}
+			and app_review.del_flag != 'Y'
+	</select>
+	
+	<!-- 앱 리뷰 수정 -->
+	<update id="updateAppReview" parameterType="com.place.dto.AppReviewDto">
+		update
+			app_review_tb
+		set
+			review_contents = #{review_contents},
+			rating_point = #{rating_point},
+			update_date = current_date,
+			update_time = current_time,
+			update_user_id = #{review_user_id}
+			<choose>
+				<when test='file_flag != null and file_flag == true'>
+					, attach_number = 'AT' || nextval('attachment_id')
+				</when>
+				<otherwise>
+					, attach_number = null
+				</otherwise>
+			</choose>
+		where
+			review_id = #{review_id};
+	</update>
+	
+	<!-- 앱 리뷰 삭제 -->
+	<update id="deleteAppReview" parameterType="com.place.dto.AppReviewDto">
+		update
+			app_review_tb
+		set
+			del_flag = 'Y'
+		where
+			review_id = #{review_id};
+	</update>
+</mapper>

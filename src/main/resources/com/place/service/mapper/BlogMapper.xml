@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.place.service.mapper.BlogMapper">
+
+	<!-- 포털 별 블로그 검색 -->
+	<select id="selectPortalBlog" resultType="com.place.dto.PortalBlogDto" parameterType="com.place.dto.PortalBlogDto">
+		select
+		*
+		from
+		portal_blog_tb
+		where 1=1
+		and place_id = #{place_id}
+		<choose>
+			<when test='portal != null and portal.equals("GN")'>
+				and portal = 'GN'
+			</when>
+			<when test='portal != null and portal.equals("GT")'>
+				and portal = 'GT'
+			</when>
+		</choose>
+		and del_flag != 'Y'
+		limit 5
+	</select>
+	
+	<!-- 블로그 전체 검색 -->
+	<select id="selectBlog" resultType="com.place.dto.PortalBlogDto" parameterType="com.place.dto.PlaceDetailDto">
+		(
+			select
+				*
+			from
+				portal_blog_tb
+			where
+				1 = 1
+				and place_id = #{place_id}
+				and del_flag != 'Y'
+				and portal = 'GN'
+			order by
+				write_date desc
+			limit 5 
+			)
+			union all 
+			(
+			select
+			*
+			from
+			portal_blog_tb
+			where
+			1 = 1
+			and place_id = #{place_id}
+			and del_flag != 'Y'
+			and portal = 'GT'
+			order by
+			write_date desc
+			limit 5 
+			)
+	</select>
+
+	<!-- 블로그 카운트 검색 -->
+	<select id="selectBlogCount" resultType="int" parameterType="com.place.dto.PortalBlogDto">
+		SELECT
+		count(*) as cnt
+		FROM portal_blog_tb
+		where 1 = 1
+		and place_id = #{place_id}
+		and portal = #{portal}
+		and url = #{url}
+		and del_flag != 'Y'
+	</select>
+
+	<!-- 블로그 데이터 insert -->
+	<insert id="insertBlog" parameterType="com.place.dto.PortalBlogDto">
+		INSERT INTO portal_blog_tb(
+		review_id,
+		place_id,
+		place_seq,
+		author,
+		portal,
+		del_flag,
+		write_time,
+		write_date,
+		add_date,
+		add_time,
+		title,
+		description,
+		url,
+		thumbnail_url
+		)
+		VALUES(
+		'PB' || nextval('portal_review_id')
+		, #{place_id}
+		, #{place_seq}
+		, #{author}
+		, #{portal}
+		, 'N'
+		, #{write_time}::time
+		, to_date(#{write_date},'yyyy-MM-dd')
+		, current_date
+		, current_time
+		, #{title}
+		, #{description}
+		, #{url}
+		, #{thumbnail_url}
+		)
+	</insert>
+</mapper>

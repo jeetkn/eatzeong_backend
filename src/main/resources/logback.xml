@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+<!--    <include resource="org/springframework/boot/logging/logback/base.xml"/>-->
+<!--    <logger name="com.example.asyncSample01" level="INFO"/>-->
+
+    <!-- Created By yeoseong_yoon -->
+    <!-- 로그 경로 변수 선언 -->
+
+    <!-- Console Appender -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>
+                %-5level %d{HH:mm:ss.SSS} [%thread] %F:%L %method - %msg%n
+            </pattern>
+        </encoder>
+    </appender>
+
+    <logger name="com.place.MainStartClass" level="INFO"/>
+
+    <root level="INFO"> <!-- DEBUG -->
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

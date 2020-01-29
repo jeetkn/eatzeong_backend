@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.place.service.mapper.PlaceMapper">
+   <!-- 장소데이터 insert -->
+   <insert id="insertPlace" parameterType="com.place.dto.PlaceDto">
+	   INSERT INTO places_tb(    
+	   						     place_id,
+	   						     keyword,
+								 place_name,
+								 place_seq,
+								 place_address,
+								 road_place_address,
+								 tel_no,
+								 shutdown_flag,
+								 category_detail,
+								 kakao_place_id,
+								 latitude,
+								 longitude,
+								 add_date,
+								 add_time,
+								 update_date,
+								 update_time,
+								 update_user_id,
+								 delete_flag,
+								 user_id,
+								 parent_category,
+								 category
+	   						)
+	                 VALUES(    
+	                 			#{place_id}
+	                 		  , #{keyword}
+	                 		  , #{place_name}
+	                 		  , 1
+	                 		  , #{place_address}
+	                 		  , #{road_place_address}
+	                 		  , #{tel_no}
+	                 		  , 'N'
+	                 		  , #{category_detail}  
+	                 		  , #{kakao_place_id}  
+	                 		  , #{latitude}  
+	                 		  , #{longitude}  
+	                 		  , current_date
+							  , current_time
+	                 		  ,	current_date
+							  ,	current_time
+	                 		  , 'API'  
+	                 		  , 'N'  
+	                 		  , 'API'
+	                 		  , #{parent_category}
+	                 		  , #{category}
+	                 		  )
+   </insert>
+   
+   <!-- 장소데이터 검색 -->
+   <select id="selectPlaceList" resultType="com.place.dto.PlaceDto" parameterType="com.place.dto.PlaceDto">
+	select 
+			 place.place_name
+			,place.place_id
+			,place.latitude
+			,place.longitude
+			,category.category_name
+			,place.kakao_place_id
+			,(select round(avg(g_rating),1) from portal_review_tb where place_id = place.place_id and portal = 'G' group by portal) as rating
+			,(select thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GT' offset 0 limit 1) as thumbnail
+		from places_tb place
+		inner join category_tb category
+		on place.category = category.category
+		where 1 = 1
+		and place.keyword = #{keyword} 
+		<choose>
+            <when test='!filter_category.equals("ALL")'>
+            	and place.category = #{filter_category}
+            </when>
+       	 </choose>
+       	 group by 
+       	 	place.place_id,
+       	    place.place_name,
+       	    <choose>
+            	<when test='!filter_category.equals("ALL")'>
+	            	place.category, 
+	            </when>
+       	 	</choose>
+       	    place.latitude,
+       	    place.longitude,
+       	    place.kakao_place_id,
+       	    category.category_name
+	</select>
+	
+	<!-- 장소 단일 검색 -->
+   <select id="selectPlaceCount" resultType="int" parameterType="com.place.dto.PlaceDto">
+			SELECT 
+				count(*) as cnt
+			FROM places_tb
+			where 1 = 1
+				and place_name = #{place_name}
+				and keyword = #{keyword}
+	</select>
+	
+	<!-- 장소 상세 검색 -->
+	<select id="selectPlaceDetail" resultType="com.place.dto.PlaceDetailDto" parameterType="com.place.dto.PlaceDetailDto">
+		select distinct 
+				place.place_id,
+				place.place_name,
+				place.google_place_name,
+				place.place_address,
+				place.road_place_address,
+				place.tel_no,
+				place.open_hours,
+				place.buisness_day,
+				place.shutdown_flag,
+				place.google_place_id,
+				place.kakao_place_id,
+				place.naver_place_id,
+				place.latitude,
+				place.longitude,
+				place.parent_category,
+				category.category_name,
+				(select round(avg(g_rating),1) from portal_review_tb where place_id = place.place_id and portal = 'G' group by portal) as rating,
+				(select thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GT' offset 0 limit 1) as thumbnail
+			from
+				places_tb place
+			inner join 
+				category_tb category 
+			on
+				place.category = category.category
+			where 1 = 1
+			and place_id = #{place_id}
+			and delete_flag != 'Y'
+			and shutdown_flag != 'Y'
+	</select>
+	
+	<!-- 장소데이터 update -->
+	<update id="updatePlace" parameterType="com.place.dto.PlaceDetailDto">
+		UPDATE places_tb
+		SET
+			google_place_id = #{google_place_id},
+			google_place_name = #{google_place_name},
+			<choose>
+	            <when test='!tel_no.equals("") or tel_no != null'>
+				tel_no = #{tel_no},
+	            </when>
+	       	 </choose>
+			open_hours = #{open_hours},
+			buisness_day = #{buisness_day},
+			update_date = current_date,
+			update_time = current_time,
+			update_user_id = 'API'
+		where 
+			place_id = #{place_id}
+	</update>
+</mapper>
