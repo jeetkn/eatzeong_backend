@@ -14,4 +14,6 @@ public interface CommonServiceInterface {
 	public Map<String, Object> insertBookmarks(Map<String, String> allRequestParams) throws Exception;
 
 	public Map<String, Object> deleteBookmark(Map<String, String> allRequestParams) throws Exception;
+
+    public List<String> getCustomSearch(String query, String portal);
 }

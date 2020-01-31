@@ -3,10 +3,8 @@ package com.place.service.mapper;
 import java.util.List;
 import java.util.Map;
 
+import com.place.dto.MainDto;
 import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
-
-import com.place.dto.PlaceDto;
 
 /* 
  * 
@@ -16,7 +14,6 @@ import com.place.dto.PlaceDto;
  * 
  * */
 @Repository("com.place.service.mapper.CommonMapper") //--> 맵퍼위치 세팅
-
 public interface CommonMapper {
 	
 	public List<Map<String, String>> selectArea() throws Exception;
@@ -43,5 +40,11 @@ public interface CommonMapper {
 	
 	public int selectBookmarkPlaceCount(Map<String, String> allRequestParams) throws Exception;
 
+	public int selectMainCount(Map<String, String> request_param);
 
+    public int selectCustomSearchCount(MainDto dto);
+
+	public void insertCustomSearch(MainDto main_dto_list);
+
+	public List<MainDto> selectMain(Map<String, String> request_param);
 }

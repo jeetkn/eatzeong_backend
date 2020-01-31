@@ -17,4 +17,5 @@ public class PortalReviewDto {
 	private String y_title;
 	private String y_video_id;
 	private String y_thumbnail_url;
+	private String y_start_index;
 }

@@ -25,6 +25,74 @@
 				del_flag != 'Y'
 			order by parent_area, area
 	</select>
+
+	<select id="selectCustomSearchCount" resultType="Int" parameterType="com.place.dto.MainDto">
+		select
+			count(*)
+		from
+			main_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and link = #{link}
+			and keyword = #{keyword}
+	</select>
+
+	<insert id="insertCustomSearch" parameterType="com.place.dto.MainDto">
+		insert into
+			main_tb
+			(
+			portal,
+			author,
+			title,
+			description,
+			thumbnail,
+			link,
+			published_date,
+			add_date,
+			add_time,
+			start_index,
+			keyword
+			)
+		values
+			(
+			#{portal},
+			#{author},
+			#{title},
+			#{description},
+			#{thumbnail},
+			#{link},
+			#{published_date}::date,
+			current_date,
+			current_time,
+			#{start_index},
+			#{keyword}
+			)
+	</insert>
+
+	<select id="selectMain" resultType="com.place.dto.MainDto" parameterType="com.place.dto.MainDto">
+		select
+			*
+		from
+			main_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = #{portal}
+			and keyword = #{query}
+	</select>
+
+	<select id="selectMainCount" resultType="Int" parameterType="java.util.HashMap">
+		select
+			count(*)
+		from
+			main_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = #{portal}
+			and keyword = #{query}
+	</select>
 	
    	<!-- 북마크 포털 리뷰 검색(youtube) -->
    	<select id="selectBookmarkPortalReviews" resultType="java.util.HashMap">

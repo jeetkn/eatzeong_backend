@@ -26,7 +26,8 @@
 				y_title,
 				y_description,
 				y_video_id,
-				y_thumbnail_url
+				y_thumbnail_url,
+				y_start_index
 			</when>
 		</choose>
 		)
@@ -51,6 +52,7 @@
 				, #{y_description}
 				, #{y_video_id}
 				, #{y_thumbnail_url}
+				, #{y_start_index}
 			</when>
 		</choose>
 		)
@@ -114,7 +116,8 @@
 			y_thumbnail_url,
 			g_content,
 			g_rating,
-			portal
+			portal,
+			y_start_index
 		FROM portal_review_tb
 		where 1 = 1
 		and place_id = #{place_id}

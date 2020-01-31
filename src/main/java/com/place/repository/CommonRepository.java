@@ -4,9 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
-import javax.inject.Inject;
 
-import org.apache.ibatis.session.SqlSession;
+import com.place.dto.MainDto;
 import org.springframework.stereotype.Repository;
 
 import com.place.service.mapper.CommonMapper;
@@ -60,5 +59,22 @@ public class CommonRepository {
 			mapper.updateBookmarkPlaces(allRequestParams);
 		else
 			mapper.updateBookmarkReviewBlog(allRequestParams);
+	}
+
+    public int selectMainCount(Map<String, String> request_param) {
+		return mapper.selectMainCount(request_param);
+    }
+
+    public void insertCustomSearch(List<MainDto> main_dto_list) throws Exception {
+		main_dto_list.stream()
+				.forEach(dto -> {
+					int count = mapper.selectCustomSearchCount(dto);
+					if(count < 1)
+						mapper.insertCustomSearch(dto);
+				});
+    }
+
+	public List<MainDto> selectMain(Map<String, String> request_param) {
+		return mapper.selectMain(request_param);
 	}
 }

@@ -4,15 +4,25 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 import com.place.api.CommonApi;
+import org.springframework.http.ResponseEntity;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.web.reactive.function.client.WebClient;
 
+@SpringBootApplication
 public class GoogleCustomSearch extends CommonApi{
 	
 	String naver_search_cx = "007124061159672905157:4dldrdpppep";			
@@ -79,13 +89,13 @@ public class GoogleCustomSearch extends CommonApi{
 	    JSONObject response_json = new JSONObject();
 	    
 	    for(String search_cx_key : search_cx.keySet()) {
-	    	if(portal.toUpperCase() == search_cx_key.toUpperCase()) {
+	    	if(portal.equalsIgnoreCase(search_cx_key)) {
 		    	URL url = new URL(URL+"&cx="+search_cx.get(search_cx_key));
 		    	System.out.println("CALL " + search_cx_key + " CUSTOM SEARCH API : " + url);
 				response_json.put(search_cx_key, jsonparser.parse(new InputStreamReader(url.openStream(), "UTF-8")));
 	    	}
 	    }
-	    
+
 	    return response_json.toJSONString();
 	}
 }

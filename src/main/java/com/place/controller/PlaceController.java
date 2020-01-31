@@ -88,7 +88,7 @@ public class PlaceController {
 	@GetMapping(value = "/places/{place_id}/portalreviews")
 	public Dto<Map<String,  List<PortalReviewDto>>> selectPortalReviews(
 			@PathVariable String place_id, 
-			@RequestParam(name = "page", defaultValue = "0") String start_page,
+			@RequestParam(name = "page", defaultValue = "0") String start_index,
 			@RequestParam(name = "portal", defaultValue = "ALL") String portal) {
 		
 		Dto<Map<String,  List<PortalReviewDto>>> return_dto = new Dto<Map<String, List<PortalReviewDto>>>();
@@ -101,12 +101,12 @@ public class PlaceController {
 			return_dto.setMessage("필수 파라미터를 확인해주세요.");
 			return return_dto;
 		}
-		if (!NumberUtils.isCreatable(start_page)) {
+		if (!NumberUtils.isCreatable(start_index)) {
 			return_dto.setCode(400);
 			return_dto.setMessage("page 파라미터를 확인해주세요.");
 			return return_dto;
 		}
-		if (Integer.parseInt(start_page) < 0) {
+		if (Integer.parseInt(start_index) < 0) {
 			return_dto.setCode(400);
 			return_dto.setMessage("page 파라미터를 확인해주세요.");
 			return return_dto;
@@ -120,7 +120,7 @@ public class PlaceController {
 		
 		try {
 			parameter.put("portal", portal.toUpperCase());
-			parameter.put("start_page", start_page);
+			parameter.put("start_index", start_index);
 			
 			place_dto.setPlace_id(place_id);
 			place_dto = placeservice.selectPlaceDetail(place_dto).getDataList();

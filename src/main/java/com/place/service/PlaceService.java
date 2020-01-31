@@ -16,6 +16,7 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import com.place.dto.*;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,11 +35,6 @@ import com.place.api.google.GoogleCustomSearch;
 import com.place.api.google.GoogleFindPlace;
 import com.place.api.google.GooglePlaceDetail;
 import com.place.api.kakao.KakaoSearchApi;
-import com.place.dto.Dto;
-import com.place.dto.PlaceDetailDto;
-import com.place.dto.PlaceDto;
-import com.place.dto.PortalBlogDto;
-import com.place.dto.PortalReviewDto;
 import com.place.repository.PlaceRepository;
 import com.place.repository.PortalBlogRepository;
 import com.place.repository.PortalReviewRepository;
@@ -411,38 +407,47 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalReviewDto> parseYoutube(DocumentContext document, PlaceDetailDto place_dto) {
+	private List<PortalReviewDto> parseYoutube(DocumentContext document, PlaceDetailDto place_dto) throws Exception {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
-		Map<String, String> request = document.read("$.YOUTUBE.queries.request[0]");
+		ObjectMapper oMapper = new ObjectMapper();
+		Map<String, String> request = (Map<String, String>) document.read("$.YOUTUBE.queries.request[0]");
 
 		if (Integer.parseInt(request.get("totalResults")) > 0) {
-			List<Map<String, String>> video_object = document.read("$.YOUTUBE.items[*].pagemap.videoobject[*]");
-			for (Map<String, String> video : video_object) {
-				System.out.println(document.jsonString());
+			List<Map<String, String>> items = document.read("$.YOUTUBE.items[*]");
+			items.stream()
+					.filter(item -> {
+						Map<String, List<Map<String, String>>> map = oMapper.convertValue(item.get("pagemap"), Map.class);
+						return map.containsKey("videoobject")
+								&& map.get("videoobject").get(0).get("genre").equalsIgnoreCase("People & Blogs");
+					})
+					.forEach(item -> {
+						Map<String, List<Map<String, String>>> map = oMapper.convertValue(item.get("pagemap"), Map.class);
+						PortalReviewDto dto = new PortalReviewDto();
 
-				PortalReviewDto review_dto = new PortalReviewDto();
+						dto.setPlace_id(place_dto.getPlace_id());
+						dto.setPortal("Y");
+						dto.setAuthor(map.get("videoobject").get(0).get("channelid"));
+						dto.setY_video_id(map.get("metatags").get(0).get("og:url"));
+						dto.setY_title(map.get("metatags").get(0).get("title"));
+						dto.setY_description(map.get("metatags").get(0).get("og:description"));
+						dto.setY_thumbnail_url(map.get("videoobject").get(0).get("thumbnailurl"));
+						dto.setWrite_date(map.get("videoobject").get(0).get("uploaddate"));
+						dto.setWrite_time("00:00:00");
+						dto.setY_start_index(String.valueOf(request.get("startIndex")));
 
-				review_dto.setPlace_id(place_dto.getPlace_id());
-				review_dto.setPortal("Y");
-				review_dto.setAuthor(video.get("channelid"));
-				review_dto.setY_video_id(video.get("videoid"));
-				review_dto.setY_title(video.get("name"));
-				review_dto.setY_description(video.get("description"));
-				review_dto.setY_thumbnail_url(video.get("thumbnailurl"));
-				review_dto.setWrite_date(video.get("datepublished"));
-				review_dto.setWrite_time("00:00:00");
-				System.out.println(review_dto.toString());
-
-				review_list.add(review_dto);
-			}
+						review_list.add(dto);
+					});
+		} else {
+			throw new Exception("검색 결과가 없습니다.");
 		}
+
 		return review_list;
 	}
 
 	/**
 	 * 구글 리뷰 데이터 dto setting
 	 * 
-	 * @param parse
+	 * @param document
 	 * @param place_dto
 	 * @return
 	 */
