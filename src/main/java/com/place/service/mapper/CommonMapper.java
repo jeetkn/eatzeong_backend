@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.place.dto.MainDto;
+import com.place.dto.PlaceDto;
 import org.springframework.stereotype.Repository;
 
 /* 
@@ -28,23 +29,33 @@ public interface CommonMapper {
 
 	public List<Map<String, Object>> selectBookmarkAppReviews(Map<String, String> allRequestParams) throws Exception;
 
-	public Map<String, Object> insertBookmarkPlaces(Map<String, String> allRequestParams) throws Exception;
+	public void insertBookmarkPlaces(Map<String, String> allRequestParams) throws Exception;
 	
-	public Map<String, Object> insertBookmarkReviewBlog(Map<String, String> allRequestParams) throws Exception;
+	public void insertBookmarkReviewBlog(Map<String, String> allRequestParams) throws Exception;
 	
-	public Map<String, Object> updateBookmarkPlaces(Map<String, String> allRequestParams) throws Exception;
+	public void updateBookmarkPlaces(Map<String, String> allRequestParams) throws Exception;
 	
-	public Map<String, Object> updateBookmarkReviewBlog(Map<String, String> allRequestParams) throws Exception;
+	public void updateBookmarkReviewBlog(Map<String, String> allRequestParams) throws Exception;
 	
 	public int selectBookmarkReviewBlogCount(Map<String, String> allRequestParams) throws Exception;
 	
 	public int selectBookmarkPlaceCount(Map<String, String> allRequestParams) throws Exception;
 
-	public int selectMainCount(Map<String, String> request_param);
+	public int selectMainCount(Map<String, String> request_param) throws Exception;
 
     public int selectCustomSearchCount(MainDto dto);
 
 	public void insertCustomSearch(MainDto main_dto_list);
 
-	public List<MainDto> selectMain(Map<String, String> request_param);
+	public List<MainDto> selectMain(Map<String, String> request_param) throws Exception;
+
+    List<Map<String, String>> selectFirstArea() throws Exception;
+
+	List<Map<String, String>> selectSecondArea(String area) throws Exception;
+
+	List<Object> selectSuggestArea() throws Exception;
+
+    int selectMainPlacesCount(PlaceDto place_dto);
+
+	List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto);
 }

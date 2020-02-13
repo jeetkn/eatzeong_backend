@@ -34,7 +34,7 @@ public class PortalBlogRepository {
 	 * @param blog_dto
 	 * @return
 	 */
-	public List<PortalBlogDto> selectPortalBlog(PortalBlogDto blog_dto) {
+	public List<PortalBlogDto> selectPortalBlog(PortalBlogDto blog_dto) throws Exception {
 		List<PortalBlogDto> list = null;
 		try {
 			list =  mapper.selectPortalBlog(blog_dto);

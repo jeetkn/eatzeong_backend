@@ -5,8 +5,8 @@
 <mapper namespace="com.place.service.mapper.CommonMapper">
 	<!-- 장소 키워드 suggest search -->
     <select id="selectSuggestKeyword" resultType="String" parameterType="String">
-			SELECT 
-				keyword
+			SELECT distinct
+				trim(keyword)
 			FROM places_tb
 			where 1 = 1
 				and  keyword like  '%' || #{keyword} || '%'
@@ -24,6 +24,40 @@
 			where 
 				del_flag != 'Y'
 			order by parent_area, area
+	</select>
+
+	<select id="selectFirstArea" resultType="java.util.HashMap">
+		select
+			area,
+			area_name
+		from
+			area_tb
+		where
+			parent_area = '*'
+			and del_flag != 'Y'
+		order by area
+	</select>
+
+	<select id="selectSecondArea" resultType="HashMap">
+		select
+			area,
+			area_name
+		from
+			area_tb
+		where
+			parent_area = #{area}
+			and del_flag != 'Y'
+	</select>
+
+	<select id="selectSuggestArea" resultType="String">
+		select
+			B.area_name || ' ' || A.area_name as area
+		from
+			area_tb as A
+		join area_tb as B
+			on A.parent_area = B.area
+		where A.del_flag != 'Y'
+			and A.area != '000'
 	</select>
 
 	<select id="selectCustomSearchCount" resultType="Int" parameterType="com.place.dto.MainDto">
@@ -80,6 +114,8 @@
 			and del_flag != 'Y'
 			and portal = #{portal}
 			and keyword = #{query}
+		order by random()
+		limit 5
 	</select>
 
 	<select id="selectMainCount" resultType="Int" parameterType="java.util.HashMap">
@@ -96,7 +132,7 @@
 	
    	<!-- 북마크 포털 리뷰 검색(youtube) -->
    	<select id="selectBookmarkPortalReviews" resultType="java.util.HashMap">
-			select
+			select distinct
 				bookmark.place_id,
 				bookmark.gubun,
 				place.place_name,
@@ -117,13 +153,14 @@
 			where 
 				1 = 1
 				and bookmark.user_id = #{user_id}
+				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
 	
    	<!-- 북마크 포털 블로그 검색(naver, tistory) -->
    	<select id="selectBookmarkPortalBlogs" resultType="java.util.HashMap">
-			select 
+			select distinct
 				bookmark.place_id,
 				bookmark.gubun,
 				place.place_name,
@@ -145,13 +182,14 @@
 			where 
 				1 = 1
 				and bookmark.user_id = #{user_id}
+				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
 	
    	<!-- 북마크 자체 리뷰 검색 -->
    	<select id="selectBookmarkAppReviews" resultType="java.util.HashMap">
-			select
+			select distinct
 				bookmark.place_id,
 				bookmark.gubun,
 				place.place_name,
@@ -173,13 +211,14 @@
 			where 
 				1 = 1
 				and bookmark.user_id = #{user_id}
+				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
 	
    	<!-- 북마크 매장 검색 -->
    	<select id="selectBookmarkPlaces" resultType="java.util.HashMap">
-			select
+			select distinct
 				bookmark.place_id,
 				bookmark.gubun,
 				place.place_name,
@@ -195,6 +234,7 @@
 			where
 				1 = 1
 				and bookmark.user_id = #{user_id}
+				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
@@ -210,7 +250,8 @@
 			del_flag,
 			gubun,
 			user_id,
-			id)
+			id,
+			sns_division)
 		values(
 			#{place_id},
 			#{user_id},
@@ -219,7 +260,8 @@
 			'N',
 			#{gubun},
 			#{user_id},
-			#{id});
+			#{id},
+			#{sns_division});
 	</insert>
 	
 	<!-- 북마크 매장 삽입 -->
@@ -232,7 +274,8 @@
 			add_date,
 			del_flag,
 			gubun,
-			user_id)
+			user_id,
+			sns_division)
 		values(
 			#{place_id},
 			#{user_id},
@@ -240,7 +283,8 @@
 			current_date,
 			'N',
 			#{gubun},
-			#{user_id});
+			#{user_id},
+			#{sns_division});
 	</insert>
 	
 	<!-- 매장 북마크 카운트 -->
@@ -253,6 +297,7 @@
 			and user_id = #{user_id}
 			and place_id = #{place_id}
 			and del_flag != 'Y'
+			and sns_division = #{sns_division}
 	</select>
 	
 	<!-- 리뷰 북마크 카운트 -->
@@ -266,6 +311,7 @@
 			and id = #{id}
 			and gubun = #{gubun}
 			and del_flag != 'Y'
+			and sns_division = #{sns_division}
 	</select>
 	
 	<!-- 북마크 매장 삭제 -->
@@ -280,6 +326,7 @@
 			and del_flag = 'N'
 			and gubun = #{gubun}
 			and user_id = #{user_id}
+			and sns_division = #{sns_division}
 	</update>
 	
 	<!-- 북마크 리뷰 삭제 -->
@@ -295,5 +342,43 @@
 			and gubun = #{gubun}
 			and user_id = #{user_id}
 			and id = #{id}
+			and sns_division = #{sns_division}
 	</update>
+
+	<select id="selectMainPlacesCount" resultType="Int" parameterType="com.place.dto.PlaceDto">
+		select
+			count(*) as count
+		from
+			places_tb
+		where
+			1 = 1
+			and keyword = #{keyword}
+			and delete_flag != 'Y'
+	</select>
+
+	<select id="selectMainPlaces" resultType="HashMap" parameterType="com.place.dto.PlaceDto">
+		select
+			place_id,
+			place_name,
+			open_hours,
+			place.category,
+			category_table.category_name,
+			latitude,
+			longitude,
+			(select trunc(avg(g_rating),1) from portal_review_tb where portal = 'G' and place_id = place.place_id and del_flag != 'Y') as google_rating,
+			avgreviewrating(place_id) as app_review_rating,
+			(select	thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GN' order by random() limit 1) as blog_thumbnail,
+			getthumbnail(place.place_id ) as app_thumbnail
+		from
+			places_tb place
+		left join
+			category_tb category_table
+			on place.category = category_table.category
+		where
+			1 = 1
+			and keyword = #{keyword}
+			and delete_flag != 'Y'
+		order by random()
+		limit 5
+	</select>
 </mapper>

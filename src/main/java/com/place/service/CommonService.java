@@ -5,13 +5,12 @@ import com.jayway.jsonpath.DocumentContext;
 import com.jayway.jsonpath.JsonPath;
 import com.place.api.google.GoogleCustomSearch;
 import com.place.dto.MainDto;
-import com.place.dto.PortalBlogDto;
+import com.place.dto.PlaceDto;
 import com.place.repository.CommonRepository;
 import com.place.service.interfaces.CommonServiceInterface;
 import lombok.extern.slf4j.Slf4j;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,7 +23,6 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service("com.place.service.CommonService")
 @Transactional
@@ -115,19 +113,13 @@ public class CommonService implements CommonServiceInterface {
         Map<String, Object> return_map = Maps.newHashMap();
         log.info("Parameters : " + allRequestParams.toString());
 
-        try {
-            int count = common.selectBookmarkCnt(allRequestParams);
-            log.debug("북마크 갯수 : " + count);
-            if (count < 1) {
-                common.insertBookmarks(allRequestParams);
-                return_map.put("result_message", "insert 성공");
-            } else {
-                return_map.put("result_message", "insert 실패. 해당 데이터의 북마크가 이미 존재합니다.");
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new Exception(e.getMessage());
+        int count = common.selectBookmarkCnt(allRequestParams);
+        log.debug("북마크 갯수 : " + count);
+        if (count < 1) {
+            common.insertBookmarks(allRequestParams);
+            return_map.put("result_message", "insert 성공");
+        } else {
+            return_map.put("result_message", "insert 실패. 해당 데이터의 북마크가 이미 존재합니다.");
         }
 
         return return_map;
@@ -150,7 +142,7 @@ public class CommonService implements CommonServiceInterface {
     }
 
     @Override
-    public List<String> getCustomSearch(String query, String portal) {
+    public List<String> getCustomSearch(String query, String portal) throws Exception {
 
         List<String> request_url_list = Lists.newArrayList();
         String key = "AIzaSyDszKM3HX1Ec-XIFb7MWMd6detznF1zAGc";
@@ -199,7 +191,7 @@ public class CommonService implements CommonServiceInterface {
         return request_url_list;
     }
 
-    private List<Map<String, Object>> parseBookmarks(List<Map<String, Object>> query_list, String gubun) {
+    private List<Map<String, Object>> parseBookmarks(List<Map<String, Object>> query_list, String gubun) throws Exception {
         List<Map<String, Object>> result_list = Lists.newArrayList();
 
         if (gubun.equals("youtube")) {
@@ -287,7 +279,7 @@ public class CommonService implements CommonServiceInterface {
      * @param request_param
      * @return 조회 결과 갯수
      */
-    public int selectMainCount(Map<String, String> request_param) {
+    public int selectMainCount(Map<String, String> request_param) throws Exception {
         return common.selectMainCount(request_param);
     }
 
@@ -352,13 +344,18 @@ public class CommonService implements CommonServiceInterface {
                             dto.setLink(map.get("metatags").get(0).get("og:url"));
                             dto.setAuthor(map.get("metatags").get(0).get("naverblog:nickname"));
                             dto.setStart_index(String.valueOf(request.get("startIndex")));
-                            String published_date = item.get("snippet").toString().substring(0, item.get("snippet").toString().indexOf("일") + 1);
-                            try {
-                                published_date = LocalDate.parse(new_format.format(origin_format.parse(published_date))).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-                                dto.setPublished_date(published_date);
-                            } catch (ParseException e) {
-                                e.printStackTrace();
+                            if(item.get("snippet").toString().indexOf("일")+1 > 10){
+                                String published_date = item.get("snippet").toString().substring(0, item.get("snippet").toString().indexOf("일") + 1);
+                                try {
+                                    published_date = LocalDate.parse(new_format.format(origin_format.parse(published_date))).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                                    dto.setPublished_date(published_date);
+                                } catch (ParseException e) {
+                                    e.printStackTrace();
+                                }
+                            }else{
+                                dto.setPublished_date("1900-01-01");
                             }
+
                             log.info(dto.toString());
                             dto_list.add(dto);
                         });
@@ -378,14 +375,20 @@ public class CommonService implements CommonServiceInterface {
                                     && map.get("metatags").get(0).containsKey("article:section")
                                     && (map.get("metatags").get(0).get("article:section").equals("일상다반사")
                                         || map.get("metatags").get(0).get("article:section").equals("맛집")
-                                        || map.get("metatags").get(0).get("article:section").equals("카페·디저트"));
+                                        || map.get("metatags").get(0).get("article:section").equals("카페·디저트"))
+                                    && !map.get("cse_image").get(0).get("src").equals("https://t1.daumcdn.net/tistory_admin/static/images/openGraph/opengraph.png")
+                                    && map.get("metatags").get(0).get("og:url").contains("tistory.com");
                         })
                         .forEach(item -> {
                             Map<String, List<Map<String, String>>> map = oMapper.convertValue(item.get("pagemap"), Map.class);
                             MainDto dto = new MainDto();
                             dto.setKeyword(request_param.get("query"));
                             dto.setPortal(request_param.get("portal").toUpperCase());
-                            dto.setAuthor(map.get("metatags").get(0).get("by"));
+                            if(map.get("metatags").get(0).get("by").indexOf("사용자 ") >= 0){
+                                dto.setAuthor(map.get("metatags").get(0).get("by").replace("사용자 ", ""));
+                            }else{
+                                dto.setAuthor(map.get("metatags").get(0).get("by"));
+                            }
                             dto.setPublished_date(ZonedDateTime.parse(map.get("metatags").get(0).get("article:published_time"))
                                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
                             dto.setThumbnail(map.get("cse_image").get(0).get("src"));
@@ -457,6 +460,53 @@ public class CommonService implements CommonServiceInterface {
         log.info("검색 개수 : {}", data_count);
 
         return return_data;
+    }
+
+    @Override
+    public List<Map<String, String>> selectFirstArea() throws Exception{
+        return common.selectFirstArea();
+    }
+
+    @Override
+    public List<Map<String, String>> selectSecondArea(String area) throws Exception{
+        return common.selectSecondArea(area).stream()
+                .sorted(Comparator.comparing(res -> res.get("area")))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Object> selectSuggestArea() throws Exception{
+        return common.selectSuggestArea();
+    }
+
+    @Override
+    public int selectMainPlacesCount(PlaceDto place_dto) throws Exception{
+        return common.selectMainPlacesCount(place_dto);
+    }
+
+    @Override
+    public List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto) throws Exception{
+        List<Map<String, Object>> result_list = new ArrayList<>();
+        List<Map<String, Object>> return_list = new ArrayList<>();
+
+        result_list = common.selectMainPlaces(place_dto);
+        result_list.forEach(result_map -> {
+            Map<String, Object> temp_map = new LinkedHashMap<>();
+            temp_map.put("place_id", result_map.get("place_id"));
+            temp_map.put("place_name", result_map.get("place_name"));
+            temp_map.put("open_hours", result_map.get("open_hours"));
+            temp_map.put("category_name", result_map.get("category_name"));
+            temp_map.put("latitude", result_map.get("latitude"));
+            temp_map.put("longitude", result_map.get("longitude"));
+            temp_map.put("google_rating", result_map.get("google_rating"));
+            temp_map.put("appreview_rating", result_map.get("appreview_rating"));
+            temp_map.put("blog_thumbnail", result_map.get("blog_thumbnail"));
+            temp_map.put("app_thumbnail", result_map.get("app_thumbnail"));
+
+            return_list.add(temp_map);
+        });
+
+        return return_list;
     }
 }
 

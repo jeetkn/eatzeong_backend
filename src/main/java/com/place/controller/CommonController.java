@@ -4,8 +4,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.place.api.google.GoogleCustomSearch;
 import com.place.dto.Dto;
+import com.place.dto.PlaceDto;
 import com.place.service.CommonService;
 import com.place.service.MyService;
+import com.place.service.PlaceService;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,11 +38,11 @@ public class CommonController {
     @Resource(name = "com.place.service.CommonService")
     CommonService common;
 
+    @Resource(name = "com.place.service.PlaceService")
+    PlaceService placeService;
+
     @Resource(name = "com.place.service.MyService")
     MyService myService;
-
-    @Resource
-    GoogleCustomSearch customSearch;
 
     @GetMapping("/rest")
     public Flux<String> rest(String query, String portal) throws Exception {
@@ -103,8 +105,8 @@ public class CommonController {
 //		return myService.async(query);
     }
 
-    @GetMapping(value = "/main")
-    public Dto<List<Map<String, String>>> main(@RequestParam Map<String, String> request_param) {
+    @GetMapping(value = "/main/reviews")
+    public Dto<List<Map<String, String>>> mainReviews(@RequestParam Map<String, String> request_param) {
         Dto<List<Map<String, String>>> return_dto = new Dto<>();
         Map<String, Object> return_map = Maps.newHashMap();
 
@@ -122,11 +124,43 @@ public class CommonController {
                 common.insertCustomSearch(request_param);
             }
 
-
             return_dto.setDataList(common.selectMain(request_param));
 
         } catch (Exception e) {
             var error = Maps.newHashMap(new HashMap<String, String>());
+            error.put("error_message", e.getMessage());
+
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("서버 오류");
+            return_dto.setDataList(Arrays.asList(error));
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    @GetMapping(value = "/main/places")
+    public Dto<List<Map<String, Object>>> mainPlaces(@RequestParam Map<String, String> request_param,
+                                                     PlaceDto place_dto) {
+        Dto<List<Map<String, Object>>> return_dto = new Dto<>();
+
+        try {
+            if (!request_param.containsKey("query"))
+                throw new Exception("필수 파라미터를 확인해주세요.");
+            if (request_param.get("query") == null || request_param.get("query").isBlank())
+                throw new Exception("query 파라미터를 확인해주세요.");
+
+            place_dto.setKeyword(request_param.get("query"));
+            log.info(place_dto.toString());
+            int count = common.selectMainPlacesCount(place_dto);
+            if(count < 1)
+                placeService.selectPlaceList(place_dto);
+
+            return_dto.setDataList(common.selectMainPlaces(place_dto));
+
+        } catch (Exception e) {
+            var error = Maps.newHashMap(new HashMap<String, Object>());
             error.put("error_message", e.getMessage());
 
             e.printStackTrace();
@@ -150,6 +184,76 @@ public class CommonController {
 
         return multimap;
     }
+
+    @GetMapping(value = "/area/first")
+    public Dto<List<Map<String, String>>> getFirstArea(){
+        Dto<List<Map<String, String>>> return_dto = new Dto<>();
+        Map<String, String> return_map = Maps.newHashMap();
+
+        try {
+            return_dto.setDataList(common.selectFirstArea());
+        } catch (Exception e) {
+            var error = Maps.newHashMap(new HashMap<String, String>());
+            error.put("error_message", e.getMessage());
+
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("서버 오류");
+            return_dto.setDataList(Arrays.asList(error));
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    @GetMapping(value = "/area/second")
+    public Dto<List<Map<String, String>>> getSecondArea(@RequestParam String area){
+        Dto<List<Map<String, String>>> return_dto = new Dto<>();
+        Map<String, String> return_map = Maps.newHashMap();
+
+        try {
+            return_dto.setDataList(common.selectSecondArea(area));
+        } catch (Exception e) {
+            var error = Maps.newHashMap(new HashMap<String, String>());
+            error.put("error_message", e.getMessage());
+
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("서버 오류");
+            return_dto.setDataList(Arrays.asList(error));
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    /**
+     * 지역 검색
+     * @return
+     */
+    @GetMapping(value = "/area/suggest")
+    public Dto<List<Object>> getSuggestArea(){
+        Dto<List<Object>> return_dto = new Dto<>();
+        Map<String, String> return_map = new HashMap<>();
+
+        try {
+            return_dto.setDataList(common.selectSuggestArea());
+        }catch (Exception e) {
+            var error = Maps.newHashMap(new HashMap<String, Object>());
+            error.put("error_message", e.getMessage());
+
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("서버 오류");
+            return_dto.setDataList(Arrays.asList(error));
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+
+
 
     @GetMapping(value = "/autocomplete")
     public List<String> selectKeyword(@RequestParam("term") String keyword) {

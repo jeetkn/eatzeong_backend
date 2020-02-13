@@ -65,7 +65,7 @@ public class AppReviewRepository {
 	 */
 	public void insertAppReviewAttachment(List<Map<String, String>> attachment_list) throws Exception {
 		for(Map<String, String> attachment_map : attachment_list) {
-			mapper.insertAppReviewAttachment(attachment_list);
+			mapper.insertAppReviewAttachment(attachment_map);
 		}
 	}
 
@@ -77,4 +77,7 @@ public class AppReviewRepository {
 		mapper.deleteAppReview(app_review_dto);
 	}
 
+    public List<AppReviewDto> selectMyReviewList(AppReviewDto review_dto) throws Exception{
+		return mapper.selectMyReviewList(review_dto);
+    }
 }

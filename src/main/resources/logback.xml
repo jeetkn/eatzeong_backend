@@ -10,10 +10,24 @@
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>
-                %-5level %d{HH:mm:ss.SSS} [%thread] %F:%L %method - %msg%n
+                %-5level %d{HH:mm:ss.SSS(z Z), Asia/Seoul} [%thread] %F:%L %method - %msg%n
             </pattern>
         </encoder>
     </appender>
+
+    <appender name="accessLog" class="ch.qos.logback.core.FileAppender">
+        <file>log/access_log.log</file>
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <appender name="async" class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="accessLog" />
+    </appender>
+
+    <logger name="reactor.netty.http.server.AccessLog" level="INFO" additivity="false">
+        <appender-ref ref="async"/>
+    </logger>
 
     <logger name="com.place.MainStartClass" level="INFO"/>
 

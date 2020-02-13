@@ -9,7 +9,6 @@
 	   						     place_id,
 	   						     keyword,
 								 place_name,
-								 place_seq,
 								 place_address,
 								 road_place_address,
 								 tel_no,
@@ -32,7 +31,6 @@
 	                 			#{place_id}
 	                 		  , #{keyword}
 	                 		  , #{place_name}
-	                 		  , 1
 	                 		  , #{place_address}
 	                 		  , #{road_place_address}
 	                 		  , #{tel_no}
@@ -55,37 +53,95 @@
    
    <!-- 장소데이터 검색 -->
    <select id="selectPlaceList" resultType="com.place.dto.PlaceDto" parameterType="com.place.dto.PlaceDto">
-	select 
-			 place.place_name
-			,place.place_id
-			,place.latitude
-			,place.longitude
-			,category.category_name
-			,place.kakao_place_id
-			,(select round(avg(g_rating),1) from portal_review_tb where place_id = place.place_id and portal = 'G' group by portal) as rating
-			,(select thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GT' offset 0 limit 1) as thumbnail
-		from places_tb place
-		inner join category_tb category
-		on place.category = category.category
-		where 1 = 1
-		and place.keyword = #{keyword} 
-		<choose>
-            <when test='!filter_category.equals("ALL")'>
-            	and place.category = #{filter_category}
-            </when>
-       	 </choose>
-       	 group by 
-       	 	place.place_id,
-       	    place.place_name,
-       	    <choose>
-            	<when test='!filter_category.equals("ALL")'>
-	            	place.category, 
-	            </when>
-       	 	</choose>
-       	    place.latitude,
-       	    place.longitude,
-       	    place.kakao_place_id,
-       	    category.category_name
+	   select
+		   place.place_name ,
+		   place.place_id ,
+		   place.latitude ,
+		   place.longitude ,
+		   category.category_name ,
+		   place.open_hours ,
+		   place.kakao_place_id ,
+		   place.place_address ,
+		   place.road_place_address ,
+		   trunc((select avg(g_rating) from portal_review_tb where	place_id = place.place_id and portal = 'G' group by	portal), 1) as google_rating ,
+		   trunc(avgreviewrating(place.place_id), 1) as app_rating,
+		   (select	thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'DAUM' offset 0 limit 1) as blog_thumbnail,
+		   getthumbnail(place.place_id ) as app_thumbnail,
+		   (select count(*) from portal_blog_tb where del_flag != 'Y' and portal = 'NAVER' and place_id = place.place_id) as naver_blog_count,
+		   (select count(*) from portal_blog_tb where del_flag != 'Y' and portal = 'DAUM' and place_id = place.place_id) as daum_blog_count,
+		   (select count(*) from portal_review_tb where del_flag != 'Y' and portal = 'GOOGLE' and place_id = place.place_id) as google_review_count,
+		   (select count(*) from portal_review_tb where del_flag != 'Y' and portal = 'YOUTUBE' and place_id = place.place_id) as youtube_review_count,
+	       (select count(*) from app_review_tb  where del_flag != 'Y' and place_id = place.place_id) as app_review_count
+	   from places_tb place
+	   inner join category_tb category on
+	   		place.category = category.category
+		   <choose>
+			   <when test='!filter_category.equals("ALL")'>
+				   and place.category = #{filter_category}
+			   </when>
+		   </choose>
+	   where
+		   1 = 1
+	   		and place.keyword = #{keyword}
+	   group by
+		   place.place_id,
+		   place.place_name,
+		   <choose>
+			   <when test='!filter_category.equals("ALL")'>
+				   place.category,
+			   </when>
+		   </choose>
+		   place.latitude,
+		   place.longitude,
+		   place.kakao_place_id,
+		   place.open_hours,
+		   category.category_name,
+		   place.place_address,
+		   place.road_place_address
+   </select>
+
+	<insert id="insertKeyword" parameterType="com.place.dto.PlaceDto">
+		insert
+			into
+			public.keyword_history_tb (
+			search_word,
+			search_user,
+			sns_division,
+			search_date,
+			search_time,
+			latitude,
+			longitude
+			)
+		values(
+			#{keyword},
+			#{user_id},
+			#{sns_division},
+			current_date,
+			current_time,
+			null,
+			null
+			);
+	</insert>
+
+	<!--인기검색어-->
+	<select id="getPopularSearches" resultType="HashMap">
+		select
+			A.search_word ,
+			row_number() over() as index
+		from (
+			select
+				search_word,
+				count(*) as count
+			from
+				keyword_history_tb
+			where
+				search_date between current_date - 30 and current_date
+			group by
+				search_word
+			order by
+				count desc
+			limit 10
+			) A
 	</select>
 	
 	<!-- 장소 단일 검색 -->
@@ -117,8 +173,8 @@
 				place.longitude,
 				place.parent_category,
 				category.category_name,
-				(select round(avg(g_rating),1) from portal_review_tb where place_id = place.place_id and portal = 'G' group by portal) as rating,
-				(select thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GT' offset 0 limit 1) as thumbnail
+				avgreviewrating(place.place_id ) as rating,
+				getthumbnail(place.place_id) as thumbnail
 			from
 				places_tb place
 			inner join 
@@ -138,7 +194,7 @@
 			google_place_id = #{google_place_id},
 			google_place_name = #{google_place_name},
 			<choose>
-	            <when test='!tel_no.equals("") or tel_no != null'>
+	            <when test='!"".equals(tel_no)'>
 				tel_no = #{tel_no},
 	            </when>
 	       	 </choose>
@@ -147,7 +203,347 @@
 			update_date = current_date,
 			update_time = current_time,
 			update_user_id = 'API'
-		where 
+		where
 			place_id = #{place_id}
 	</update>
+
+	<!--네이버 블로그 단일 카운트-->
+	<select id="selectNaverBlogCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_blog_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and place_id = #{place_id}
+			and portal = 'NAVER'
+			and url = #{link}
+	</select>
+
+	<!--네이버 블로그 전체 카운트-->
+	<select id="selectNaverBlogsCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_blog_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = 'NAVER'
+			and place_id = #{place_id}
+	</select>
+
+	<insert id="insertNaverBlog" parameterType="HashMap">
+		insert into
+			portal_blog_tb (
+			review_id,
+			place_id,
+			author,
+			write_time,
+			write_date,
+			portal,
+			del_flag,
+			add_time,
+			add_date,
+			title,
+			description,
+			url,
+			thumbnail_url
+			)
+		values
+		(
+			'PB' || nextval('portal_review_id'),
+			#{place_id},
+			#{bloggername},
+			'00:00:00',
+			to_date(#{postdate},'yyyyMMdd'),
+			'NAVER',
+			'N',
+			current_time,
+			current_date,
+			#{title},
+			#{description},
+			#{link},
+			null
+		);
+	</insert>
+
+	<select id="selectNaverBlogs" resultType="HashMap" parameterType="HashMap">
+		select
+			*,
+			row_number() over (order by review_id)
+		from
+			(
+			select
+				*
+			from
+				portal_blog_tb
+			where
+				1 = 1
+				and del_flag != 'Y'
+				and portal = 'NAVER'
+				and place_id = #{place_id}
+			<choose>
+				<when test="size > 0">
+					limit #{size}::int
+				</when>
+			</choose>
+			) A
+	</select>
+
+	<select id="selectDaumBlogsCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_blog_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = 'DAUM'
+			and place_id = #{place_id}
+	</select>
+
+	<select id="selectDaumBlogCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_blog_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and place_id = #{place_id}
+			and portal = 'DAUM'
+			and url = #{url}
+	</select>
+
+	<insert id="insertDaumBlog" parameterType="HashMap">
+		insert into
+			portal_blog_tb (
+			review_id,
+			place_id,
+			author,
+			write_time,
+			write_date,
+			portal,
+			del_flag,
+			add_time,
+			add_date,
+			title,
+			description,
+			url,
+			thumbnail_url
+			)
+		values
+			(
+			'PB' || nextval('portal_review_id'),
+			#{place_id},
+			#{blogname},
+			to_char(to_timestamp(#{datetime}, 'YYYY-MM-DD HH24:MI:SS'), 'HH24:MI:SS')::time,
+			to_date(#{datetime},'yyyy-MM-dd'),
+			'DAUM',
+			'N',
+			current_time,
+			current_date,
+			#{title},
+			#{contents},
+			#{url},
+			#{thumbnail}
+			);
+	</insert>
+
+	<select id="selectDaumBlogs" resultType="HashMap" parameterType="HashMap">
+		select
+			*,
+			row_number() over (order by review_id)
+		from
+			(
+			select
+				*
+			from
+				portal_blog_tb
+			where
+				1 = 1
+				and del_flag != 'Y'
+				and portal = 'DAUM'
+				and place_id = #{place_id}
+			<choose>
+				<when test="size > 0">
+					limit #{size}::int
+				</when>
+			</choose>
+			) A
+	</select>
+
+	<select id="selectYoutubeReviewsCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_review_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = 'YOUTUBE'
+			and place_id = #{place_id}
+	</select>
+
+	<select id="selectYoutubeReviewCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_review_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and place_id = #{place_id}
+			and portal = 'YOUTUBE'
+			and y_video_id = #{url}
+	</select>
+
+	<insert id="insertYoutubeReview" parameterType="HashMap">
+		insert into
+			portal_review_tb (
+			review_id,
+			place_id,
+			author,
+			write_time,
+			write_date,
+			portal,
+			del_flag,
+			g_content,
+			g_rating,
+			y_title,
+			y_video_id,
+			y_thumbnail_url,
+			add_date,
+			add_time,
+			y_start_index
+			)
+		values(
+			'PR' || nextval('portal_review_id'),
+			#{place_id},
+			#{author},
+			to_char(to_timestamp(#{datetime}, 'YYYY-MM-DD HH24:MI:SS'), 'HH24:MI:SS')::time,
+			to_date(#{datetime},'yyyy-MM-dd'),
+			'YOUTUBE',
+			'N',
+			null,
+			null,
+			#{title},
+			#{url},
+			#{thumbnail},
+			current_date,
+			current_time,
+			null
+			);
+	</insert>
+
+	<select id="selectGoogleReviewsCount"  resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_review_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and portal = 'GOOGLE'
+			and place_id = #{place_id}
+	</select>
+
+	<select id="selectGoogleReviewCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*)
+		from
+			portal_review_tb
+		where
+			1 = 1
+			and del_flag != 'Y'
+			and place_id = #{place_id}
+			and portal = 'GOOGLE'
+			and author = #{author_name}
+	</select>
+
+	<insert id="insertGoogleReview" parameterType="HashMap">
+		insert into
+			portal_review_tb (
+			review_id,
+			place_id,
+			author,
+			write_time,
+			write_date,
+			portal,
+			del_flag,
+			g_content,
+			g_rating,
+			y_title,
+			y_video_id,
+			y_thumbnail_url,
+			add_date,
+			add_time,
+			y_start_index
+			)
+		values(
+			'PR' || nextval('portal_review_id'),
+			#{place_id},
+			#{author_name},
+			to_char(to_timestamp(#{time}), 'HH24:MI:SS')::time,
+			to_date(to_timestamp(#{time})::text, 'YYYY-MM-DD'),
+			'GOOGLE',
+			'N',
+			#{text},
+			#{rating},
+			null,
+			null,
+			null,
+			current_date,
+			current_time,
+			null
+			);
+	</insert>
+
+	<select id="selectYoutubeReviews" resultType="HashMap" parameterType="HashMap">
+		select
+			*,
+			row_number() over (order by review_id)
+		from
+			(
+			select
+				*
+			from
+				portal_review_tb
+			where
+				1 = 1
+				and del_flag != 'Y'
+				and portal = 'YOUTUBE'
+				and place_id = #{place_id}
+				<choose>
+					<when test="size > 0">
+						limit #{size}::int
+					</when>
+				</choose>
+			) A
+	</select>
+
+	<select id="selectGoogleReviews"  resultType="HashMap" parameterType="HashMap">
+		select
+		*,
+		row_number() over (order by review_id)
+		from
+		(
+		select
+		*
+		from
+		portal_review_tb
+		where
+		1 = 1
+		and del_flag != 'Y'
+		and portal = 'GOOGLE'
+		and place_id = #{place_id}
+		<choose>
+			<when test="size > 0">
+				limit #{size}::int
+			</when>
+		</choose>
+		) A
+	</select>
 </mapper>

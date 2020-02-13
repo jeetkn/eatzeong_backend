@@ -1,26 +1,5 @@
 package com.place.service;
 
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import javax.inject.Inject;
-
-import com.place.dto.*;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -35,39 +14,70 @@ import com.place.api.google.GoogleCustomSearch;
 import com.place.api.google.GoogleFindPlace;
 import com.place.api.google.GooglePlaceDetail;
 import com.place.api.kakao.KakaoSearchApi;
+import com.place.dto.*;
 import com.place.repository.PlaceRepository;
 import com.place.repository.PortalBlogRepository;
 import com.place.repository.PortalReviewRepository;
-import com.place.service.PlaceService;
 import com.place.service.interfaces.PlaceServiceInterface;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import javax.inject.Inject;
+import javax.swing.text.Document;
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service("com.place.service.PlaceService")
 @Transactional
 @SpringBootApplication(scanBasePackages = {"com.place.repository"})
+@Slf4j
 public class PlaceService implements PlaceServiceInterface {
 
 	@Inject
-	PlaceRepository place;
+	PlaceRepository place_repo;
 	@Inject
-	PortalReviewRepository review;
+	PortalReviewRepository review_repo;
 	@Inject
-	PortalBlogRepository blog;
+	PortalBlogRepository blog_repo;
+	@Inject
+	GoogleCustomSearch custom_search;
+	@Autowired
+	ApiService apiService;
 
 	/**
 	 * 장소 목록 조회
 	 */
 	@Override
-	public Dto<List<PlaceDto>> selectPlaceList(PlaceDto dto) throws Exception {
+	public List<Object> selectPlaceList(PlaceDto dto) throws Exception{
 		KakaoSearchApi kakao_search_api = new KakaoSearchApi();
 		Map<String, String> fields = new HashMap<String, String>();
 		Dto<List<PlaceDto>> list = new Dto<List<PlaceDto>>();
 		List<PlaceDto> list_dto = new ArrayList<PlaceDto>();
+		List<Object> return_list = new ArrayList<>();
+
+		if(dto.getUser_id() == null || "".equals(dto.getUser_id())) {
+			dto.setUser_id("temp");
+			dto.setSns_division("T");
+		}
+
+		log.info(dto.toString());
+		place_repo.insertKeyword(dto);
 
 		if (dto.getFilter_category() == null || dto.getFilter_category().isBlank()) {
 			dto.setFilter_category("ALL");
 		}
 
-		list_dto = place.selectPlaceList(dto);
+		list_dto = place_repo.selectPlaceList(dto);
 
 		if (list_dto.size() <= 0) {
 			for (int page = 1; page < 4; page++) { // 3번 반복
@@ -82,102 +92,133 @@ public class PlaceService implements PlaceServiceInterface {
 			}
 		}
 
-		list_dto = place.selectPlaceList(dto);
+		list_dto = place_repo.selectPlaceList(dto);
 
-		list.setDataList(list_dto);
-		list.setCode(200);
-		list.setMessage("호출 성공");
-		return list;
+		list_dto.stream()
+				.forEach(res -> {
+					Map<String, Object> temp_map = new LinkedHashMap<>();
+					temp_map.put("place_name", res.getPlace_name());
+					temp_map.put("place_id", res.getPlace_id());
+					temp_map.put("latitude", res.getLatitude());
+					temp_map.put("longitude", res.getLongitude());
+					temp_map.put("place_address", res.getPlace_address());
+					temp_map.put("road_place_address", res.getRoad_place_address());
+					temp_map.put("open_hours", res.getOpen_hours());
+					temp_map.put("google_rating", res.getGoogle_rating());
+					temp_map.put("app_rating", res.getApp_rating());
+					temp_map.put("google_place_id", res.getGoogle_place_id());
+					temp_map.put("kakao_place_id", res.getKakao_place_id());
+					temp_map.put("naver_place_id", res.getNaver_place_id());
+					temp_map.put("blog_thumbnail", res.getBlog_thumbnail());
+					temp_map.put("app_thumbnail", res.getApp_thumbnail());
+					temp_map.put("category_name", res.getCategory_name());
+					temp_map.put("naver_blog_count", res.getNaver_blog_count());
+					temp_map.put("daum_blog_count", res.getDaum_blog_count());
+					temp_map.put("google_review_count", res.getGoogle_review_count());
+					temp_map.put("youtube_review_count", res.getYoutube_review_count());
+					temp_map.put("app_review_count", res.getApp_review_count());
+
+					return_list.add(temp_map);
+				});
+
+		return return_list;
 	}
 
 	/**
-	 * 장소 디테일 정보 조회
+	 * 장소 상세 조회
+	 *
+	 * @param detail_dto
+	 * @return
+	 * @throws Exception
 	 */
 	@Override
-	public Dto<PlaceDetailDto> selectPlaceDetail(PlaceDetailDto dto) throws Exception {
-		Dto<PlaceDetailDto> detail_dto = new Dto<PlaceDetailDto>();
+	public Map<String, Object> selectPlaceDetail(PlaceDetailDto detail_dto) throws Exception{
+		Map<String, Object> return_map = new HashMap<>();
+		Map<String, String> fields = new HashMap<String, String>();
 		GoogleFindPlace google_find_place = new GoogleFindPlace();
 		GooglePlaceDetail place_detail = new GooglePlaceDetail();
-		Map<String, String> fields = new HashMap<String, String>();
 		String google_find_place_API_json = ""; // Find Place API Call
 		String google_place_detail_API_json = ""; // Place Detail API Call
 
-		try {
-			dto = place.selectPlaceDetail(dto);
-			if (dto.getGoogle_place_id() == null || dto.getGoogle_place_id().isBlank()) {
-				// Find Place API Call
-				fields.put("input", dto.getPlace_name());
+		detail_dto = place_repo.selectPlaceDetail(detail_dto);
+
+		if (detail_dto.getGoogle_place_id() == null || detail_dto.getGoogle_place_id().isBlank()) {
+			// Find Place API Call
+			fields.put("input", detail_dto.getPlace_name());
+			fields.put("language", "ko");
+			fields.put("fields", "photos,formatted_address,name,rating,opening_hours,geometry,place_id");
+			fields.put("locationbias", "point:" + detail_dto.getLatitude() + "," + detail_dto.getLongitude());
+			fields.put("inputtype", "textquery");
+
+			google_find_place_API_json = google_find_place.callApi(google_find_place.CreateURL(fields));
+
+			if (!JsonPath.parse(google_find_place_API_json).read("$.status").equals("ZERO_RESULTS")) {
+				String google_place_name = JsonPath.parse(google_find_place_API_json).read("$.candidates[0].name");
+				String google_place_id = JsonPath.parse(google_find_place_API_json)
+						.read("$.candidates[0].place_id");
+
+				// Google Place Detail API Call
+				fields.clear();
+				fields.put("place_id", google_place_id);
 				fields.put("language", "ko");
-				fields.put("fields", "photos,formatted_address,name,rating,opening_hours,geometry,place_id");
-				fields.put("locationbias", "point:" + dto.getLatitude() + "," + dto.getLongitude());
-				fields.put("inputtype", "textquery");
+				fields.put("fields", "name,rating,formatted_phone_number,review,opening_hours");
 
-				google_find_place_API_json = google_find_place.callApi(google_find_place.CreateURL(fields));
-//				System.out.println(google_find_place_API_json);
+				google_place_detail_API_json = place_detail.callApi(place_detail.CreateURL(fields));
+				DocumentContext document = JsonPath.parse(google_place_detail_API_json);
 
-				if (!JsonPath.parse(google_find_place_API_json).read("$.status").equals("ZERO_RESULTS")) {
-					String google_place_name = JsonPath.parse(google_find_place_API_json).read("$.candidates[0].name");
-					String google_place_id = JsonPath.parse(google_find_place_API_json)
-							.read("$.candidates[0].place_id");
+				List<Map<String, Map<String, Integer>>> opening_hours = document.read("$.result[?(@.opening_hours)].opening_hours.periods[*]");
+				List<String> weekday_text = document.read("$.result[?(@.opening_hours)].opening_hours.weekday_text[*]");
+				List<String> tel_no = document.read("$.result[?(@.formatted_phone_number)].formatted_phone_number");
 
-					// Google Place Detail API Call
-					fields.clear();
-					fields.put("place_id", google_place_id);
-					fields.put("language", "ko");
-					fields.put("fields", "name,rating,formatted_phone_number,review,opening_hours");
+				if (!opening_hours.isEmpty()) { // response json 데이터 중 periods 데이터가 없을 경우
+					String jsonstr = openingHourParse(opening_hours);
 
-					google_place_detail_API_json = place_detail.callApi(place_detail.CreateURL(fields));
-//					System.out.println(google_place_detail_API_json);
-					DocumentContext document = JsonPath.parse(google_place_detail_API_json);
+					detail_dto.setOpen_hours(jsonstr);
+					detail_dto.setBuisness_day(weekday_text.toString());
 
-					List<Map<String, Map<String, Integer>>> opening_hours = document.read("$.result[?(@.opening_hours)].opening_hours.periods[*]");
-					List<String> weekday_text = document.read("$.result[?(@.opening_hours)].opening_hours.weekday_text[*]");
-					List<String> tel_no = document.read("$.result[?(@.formatted_phone_number)].formatted_phone_number");
-
-					if (!opening_hours.isEmpty()) { // response json 데이터 중 periods 데이터가 없을 경우
-						String jsonstr = openingHourParse(opening_hours);
-
-						dto.setOpen_hours(jsonstr);
-						dto.setBuisness_day(weekday_text.toString());
-
-					} else {
-						System.out.println("Opening hours 없음!!!");
-					}
-
-					if (!tel_no.isEmpty()) {
-						dto.setTel_no(tel_no.get(0));
-					}
-					dto.setGoogle_place_id(google_place_id);
-					dto.setGoogle_place_name(google_place_name);
-					place.updatePlace(dto);
-					dto = place.selectPlaceDetail(dto);
-					detail_dto.setDataList(dto);
 				} else {
-					System.out.println("Result값 없음");
-					detail_dto.setDataList(dto);
+					System.out.println("Opening hours 없음!!!");
 				}
-			} else {
-				detail_dto.setDataList(dto);
-			}
 
-		} catch (Exception e) {
-			e.printStackTrace();
+				if (!tel_no.isEmpty()) {
+					detail_dto.setTel_no(tel_no.get(0));
+				}
+				detail_dto.setGoogle_place_id(google_place_id);
+				detail_dto.setGoogle_place_name(google_place_name);
+				place_repo.updatePlace(detail_dto);
+				detail_dto = place_repo.selectPlaceDetail(detail_dto);
+
+			} else {
+				log.info("Result값 없음");
+			}
 		}
 
-		return detail_dto;
+		return_map.put("place_name", detail_dto.getPlace_name());
+		return_map.put("place_id", detail_dto.getPlace_id());
+		return_map.put("google_place_id", detail_dto.getGoogle_place_id());
+		return_map.put("phone_no", detail_dto.getTel_no());
+		return_map.put("opening_hours", detail_dto.getOpen_hours());
+		return_map.put("road_address", detail_dto.getRoad_place_address());
+		return_map.put("address", detail_dto.getPlace_address());
+		return_map.put("rating", detail_dto.getRating());
+		return_map.put("category", detail_dto.getCategory_name());
+
+		return return_map;
 	}
 
 	/**
 	 * 포탈 리뷰 조회(유튜브, 구글)
 	 */
-	@Override
+/*	@Override
 	public Map<String, List<PortalReviewDto>> selectPlacePortalReview(PlaceDetailDto place_dto, Map<String, String> parameter) {
 		Map<String, List<PortalReviewDto>> result_map = Maps.newHashMap();
 		List<PortalReviewDto> youtube_dto = Lists.newArrayList();
 		List<PortalReviewDto> google_dto = Lists.newArrayList();
 
 		try {
-			List<PortalReviewDto> review_list = review.selectReviews(place_dto); // 리뷰 전체 조회
+			Map<String, Object> detail_dto_map = selectPlaceDetail(place_dto);
+			place_dto.setPlace_name(detail_dto_map.get("place_name").toString());
+			List<PortalReviewDto> review_list = review_repo.selectReviews(place_dto); // 리뷰 전체 조회
 			if (review_list.isEmpty()) {
 				youtube_dto = insertYoutubeReview(place_dto); // 유튜브 리뷰 삽입
 				google_dto = insertGoogleReview(place_dto); // 구글 리뷰 삽입
@@ -209,12 +250,12 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return result_map;
-	}
+	}*/
 
 	/**
 	 * 포털 블로그 조회(네이버, 다음)
 	 */
-	@Override
+/*	@Override
 	public Map<String, List<PortalBlogDto>> selectPlacePortalBlog(PlaceDetailDto place_dto) {
 		Map<String, List<PortalBlogDto>> result_map = Maps.newHashMap();
 		List<PortalBlogDto> naver_dto = Lists.newArrayList();
@@ -223,7 +264,7 @@ public class PlaceService implements PlaceServiceInterface {
 		
 
 		try {
-			List<PortalBlogDto> blog_list = blog.selectBlog(place_dto); // 블로그 전체 조회
+			List<PortalBlogDto> blog_list = blog_repo.selectBlog(place_dto); // 블로그 전체 조회
 			if (blog_list.isEmpty()) {
 				naver_dto = insertNaverBlog(place_dto);
 				daum_dto = insertDaumBlog(place_dto);
@@ -253,7 +294,7 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return result_map;
-	}
+	}*/
 
 	/**
 	 * <strong>유튜브 리뷰 삽입</strong>
@@ -262,7 +303,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @return
 	 * @throws Exception
 	 */
-	private List<PortalReviewDto> insertYoutubeReview(PlaceDetailDto place_dto) throws Exception {
+/*	private List<PortalReviewDto> insertYoutubeReview(PlaceDetailDto place_dto) throws Exception {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
 		PortalReviewDto review_dto = new PortalReviewDto();
 		Map<String, String> fields = new HashMap<String, String>();
@@ -275,20 +316,16 @@ public class PlaceService implements PlaceServiceInterface {
 		fields.put("q", place_dto.getPlace_name());
 		fields.put("sort", "date:r:" + last_year_date + ":" + today); // 최근 2년
 
-		try {
-			youtube_search_API_json = custom_search.callApi(custom_search.CreateURL(fields), "YOUTUBE");
-			review_list = parseYoutube(JsonPath.parse(youtube_search_API_json), place_dto);
+		youtube_search_API_json = custom_search.callApi(custom_search.CreateURL(fields), "YOUTUBE");
+		review_list = parseYoutube(JsonPath.parse(youtube_search_API_json), place_dto);
 
-			review.insertReview(review_list);
+		review_repo.insertReview(review_list);
 
-			review_dto.setPlace_id(place_dto.getPlace_id());
-			review_dto.setPortal("Y");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+		review_dto.setPlace_id(place_dto.getPlace_id());
+		review_dto.setPortal("Y");
 
-		return review.selectPortalReview(review_dto);
-	}
+		return review_repo.selectPortalReview(review_dto);
+	}*/
 
 	/**
 	 * <strong>구글 리뷰 삽입</strong>
@@ -296,7 +333,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalReviewDto> insertGoogleReview(PlaceDetailDto place_dto) {
+/*	private List<PortalReviewDto> insertGoogleReview(PlaceDetailDto place_dto) throws Exception {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
 		List<PortalReviewDto> resultData = Lists.newArrayList();
 		
@@ -306,27 +343,23 @@ public class PlaceService implements PlaceServiceInterface {
 		String google_placd_detail_API_json = "";
 
 		if (!(place_dto.getGoogle_place_id() == null || place_dto.getGoogle_place_id().isEmpty())) {
-			try {
-				fields.put("place_id", place_dto.getGoogle_place_id());
-				fields.put("language", "ko");
-				fields.put("fields", "name,rating,formatted_phone_number,review,opening_hours");
+			fields.put("place_id", place_dto.getGoogle_place_id());
+			fields.put("language", "ko");
+			fields.put("fields", "name,rating,formatted_phone_number,review,opening_hours");
 
-				google_placd_detail_API_json = place_detail.callApi(place_detail.CreateURL(fields));
-				review_list = parseGoogle(JsonPath.parse(google_placd_detail_API_json), place_dto);
+			google_placd_detail_API_json = place_detail.callApi(place_detail.CreateURL(fields));
+			review_list = parseGoogle(JsonPath.parse(google_placd_detail_API_json), place_dto);
 
-				review.insertReview(review_list);
+			review_repo.insertReview(review_list);
 
-				review_dto.setPlace_id(place_dto.getPlace_id());
-				review_dto.setPortal("G");
-				
-				resultData = review.selectPortalReview(review_dto);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			review_dto.setPlace_id(place_dto.getPlace_id());
+			review_dto.setPortal("G");
+
+			resultData = review_repo.selectPortalReview(review_dto);
 		}
 
 		return resultData;
-	}
+	}*/
 
 	/**
 	 * <strong>네이버 블로그 삽입</strong>
@@ -334,7 +367,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalBlogDto> insertNaverBlog(PlaceDetailDto place_dto) {
+/*	private List<PortalBlogDto> insertNaverBlog(PlaceDetailDto place_dto) throws Exception {
 		String json = "";
 		GoogleCustomSearch custom_search = new GoogleCustomSearch();
 		Map<String, String> fields = new HashMap<String, String>();
@@ -352,7 +385,7 @@ public class PlaceService implements PlaceServiceInterface {
 			json = custom_search.callApi(custom_search.CreateURL(fields), "NAVER");
 			blog_list = parseNaver(JsonPath.parse(json), place_dto);
 
-			blog.insertBlog(blog_list);
+			blog_repo.insertBlog(blog_list);
 
 			blog_dto.setPlace_id(place_dto.getPlace_id());
 			blog_dto.setPortal("GN");
@@ -360,8 +393,8 @@ public class PlaceService implements PlaceServiceInterface {
 			e.printStackTrace();
 		}
 
-		return blog.selectPortalBlog(blog_dto);
-	}
+		return blog_repo.selectPortalBlog(blog_dto);
+	}*/
 
 	/**
 	 * <strong>다음 블로그 삽입</strong>
@@ -369,7 +402,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalBlogDto> insertDaumBlog(PlaceDetailDto place_dto) {
+/*	private List<PortalBlogDto> insertDaumBlog(PlaceDetailDto place_dto) throws Exception {
 		String json = "";
 		GoogleCustomSearch custom_search = new GoogleCustomSearch();
 		Map<String, String> fields = new HashMap<String, String>();
@@ -377,7 +410,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 		try {
 			
-			List<PortalBlogDto> blog_list = blog.selectBlog(place_dto);
+			List<PortalBlogDto> blog_list = blog_repo.selectBlog(place_dto);
 
 			String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
 			String last_year_date = LocalDateTime.now().minusYears(1).format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -389,7 +422,7 @@ public class PlaceService implements PlaceServiceInterface {
 			json = custom_search.callApi(custom_search.CreateURL(fields), "DAUM");
 			blog_list = parseDaum(JsonPath.parse(json), place_dto);
 
-			blog.insertBlog(blog_list);
+			blog_repo.insertBlog(blog_list);
 
 			blog_dto.setPlace_id(place_dto.getPlace_id());
 			blog_dto.setPortal("GT");
@@ -397,8 +430,8 @@ public class PlaceService implements PlaceServiceInterface {
 			e.printStackTrace();
 		}
 
-		return blog.selectPortalBlog(blog_dto);
-	}
+		return blog_repo.selectPortalBlog(blog_dto);
+	}*/
 
 	/**
 	 * 유튜브 리뷰 데이터 dto setting
@@ -407,7 +440,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalReviewDto> parseYoutube(DocumentContext document, PlaceDetailDto place_dto) throws Exception {
+/*	private List<PortalReviewDto> parseYoutube(DocumentContext document, PlaceDetailDto place_dto) throws Exception {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
 		ObjectMapper oMapper = new ObjectMapper();
 		Map<String, String> request = (Map<String, String>) document.read("$.YOUTUBE.queries.request[0]");
@@ -442,7 +475,7 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return review_list;
-	}
+	}*/
 
 	/**
 	 * 구글 리뷰 데이터 dto setting
@@ -451,8 +484,9 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalReviewDto> parseGoogle(DocumentContext document, PlaceDetailDto place_dto) {
+/*	private List<PortalReviewDto> parseGoogle(DocumentContext document, PlaceDetailDto place_dto) {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
+
 
 		List<Map<String, Object>> google_reviews = document.read("$.result.reviews");
 		if (!google_reviews.isEmpty()) {
@@ -471,7 +505,7 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return review_list;
-	}
+	}*/
 
 	/**
 	 * 네이버 블로그 dto setting
@@ -480,8 +514,8 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalBlogDto> parseNaver(DocumentContext document, PlaceDetailDto place_dto) {
-		List<PortalBlogDto> dto_list = new ArrayList<PortalBlogDto>();
+/*	private List<PortalBlogDto> parseNaver(DocumentContext document, PlaceDetailDto place_dto) {
+		List<PortalBlogDto> dto_list = new ArrayList<>();
 		Map<String, String> request = document.read("$.NAVER.queries.request[0]");
 
 		if (Integer.parseInt(request.get("totalResults")) > 0) {
@@ -519,7 +553,7 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return dto_list;
-	}
+	}*/
 
 	/**
 	 * 다음 블로그 dto setting
@@ -528,7 +562,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param place_dto
 	 * @return
 	 */
-	private List<PortalBlogDto> parseDaum(DocumentContext document, PlaceDetailDto place_dto) {
+/*	private List<PortalBlogDto> parseDaum(DocumentContext document, PlaceDetailDto place_dto) {
 		List<PortalBlogDto> dto_list = new ArrayList<PortalBlogDto>();
 		Map<String, String> request = document.read("$.DAUM.queries.request[0]");
 
@@ -554,7 +588,7 @@ public class PlaceService implements PlaceServiceInterface {
 			}
 		}
 		return dto_list;
-	}
+	}*/
 
 	/**
 	 * 장소 정보 Insert
@@ -613,7 +647,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 			dto_list.add(dto);
 		}
-		place.insertPlace(dto_list);
+		place_repo.insertPlace(dto_list);
 	}
 
 	/**
@@ -624,7 +658,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 */
 	private String openingHourParse(List<Map<String, Map<String, Integer>>> opening_hours_list) {
 		Table<String, String, String> opening_hours_table = HashBasedTable.create();
-		String[] days = new String[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fir", "Sat" };
+		String[] days = new String[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
 		String jsonString = null;
 		try {
 			for (int i = 0; i < 7; i++) {
@@ -684,7 +718,7 @@ public class PlaceService implements PlaceServiceInterface {
 	 * @param format 반환 형식(date/time)
 	 * @return String date(YYYY-MM-DD)/time(HH:MM:SS)
 	 */
-	public String unixTimeToDateTime(String unix, String format) {
+/*	public String unixTimeToDateTime(String unix, String format) {
 		long t = Long.parseLong(unix + "000");
 		SimpleDateFormat simpleDate = new SimpleDateFormat();
 
@@ -695,6 +729,400 @@ public class PlaceService implements PlaceServiceInterface {
 		}
 
 		return simpleDate.format(t);
+	}*/
+
+/*	@Override
+	public Map<String, Object> selectPlacePortalReviews(Map<String, String> parameter) throws Exception{
+		Map<String, Object> return_map = new HashMap<>();
+		Map<String, Object> place_detail_map = new HashMap<>();
+		List<Map<String, Object>> youtube_list = new ArrayList<>();
+		List<Map<String, Object>> google_list = new ArrayList<>();
+		List<PortalReviewDto> youtube_dto = new ArrayList<>();
+		List<PortalReviewDto> google_dto = new ArrayList<>();
+
+		PlaceDetailDto place_dto = new PlaceDetailDto();
+		place_dto.setPlace_id(parameter.get("place_id"));
+		place_detail_map = selectPlaceDetail(place_dto);
+		place_dto.setPlace_name(place_detail_map.get("place_name").toString());
+		place_dto.setGoogle_place_id(place_detail_map.get("google_place_id").toString());
+		log.info(place_detail_map.toString());
+
+		List<PortalReviewDto> review_list = review_repo.selectReviews(place_dto); // 리뷰 전체 조회
+		if(review_list.isEmpty()){
+			insertYoutubeReview(place_dto); // 유튜브 리뷰 삽입
+			insertGoogleReview(place_dto); // 구글 리뷰 삽입
+		}else{
+			int y_cnt = 0; // 유튜브 리뷰 갯수
+			int g_cnt = 0; // 구글 리뷰 갯수
+			for (PortalReviewDto dto : review_list) {
+				if (dto.getPortal().equalsIgnoreCase("Y")) {
+					youtube_dto.add(dto);
+					y_cnt++;
+				} else if (dto.getPortal().equalsIgnoreCase("G")) {
+					google_dto.add(dto);
+					g_cnt++;
+				}
+			}
+			if (y_cnt < 1) {
+				insertYoutubeReview(place_dto);
+			}
+			if (g_cnt < 1) {
+				insertGoogleReview(place_dto);
+			}
+		}
+
+
+		return_map.put("YOUTUBE", youtube_list);
+		return_map.put("GOOGLE", google_list);
+
+		return return_map;
+	}*/
+
+	@Override
+	public List<Object> getPopularSearches() throws Exception{
+		List<Object> result_list = new ArrayList<>();
+		result_list = place_repo.getPopularSearches().stream()
+				.sorted(Comparator.comparing(c -> Integer.parseInt(c.get("index").toString())))
+				.collect(Collectors.toList());
+
+		log.info(result_list.toString());
+
+		return result_list;
 	}
 
+	@Override
+	public List<Map<String, Object>> selectNaverBlog(Map<String, String> request_param) throws Exception{
+		Map<String, String> fields_map = new HashMap<>();
+		ObjectMapper mapper = new ObjectMapper();
+
+		PlaceDetailDto place_detail_dto = new PlaceDetailDto();
+		place_detail_dto.setPlace_id(request_param.get("place_id"));
+		Map<String, String> place_detail_map = mapper.convertValue(selectPlaceDetail(place_detail_dto), Map.class);
+		log.info(place_detail_map.toString());
+
+		fields_map.put("query", request_param.get("query"));
+		fields_map.put("place_id", request_param.get("place_id"));
+		fields_map.put("place_name", place_detail_map.get("place_name"));
+		fields_map.put("user_id", request_param.getOrDefault("user_id", "temp"));
+		fields_map.put("sns_division", request_param.getOrDefault("sns_division", "T"));
+		fields_map.put("size", request_param.getOrDefault("size", ""));
+
+		int count = place_repo.selectNaverBlogsCount(fields_map);
+		if(count < 1) {
+			String naver_blog_string = apiService.naverSearchBlog(fields_map);
+
+			List<Map<String, String>> naver_blog_list = JsonPath.parse(naver_blog_string).read("$.items");
+			naver_blog_list = naver_blog_list.stream()
+					.filter(map -> map.get("link").contains("naver"))
+					.peek(map -> {
+						map.replace("title", map.get("title").replaceAll("<(/)?([a-zA-Z]*)(\\s[a-zA-Z]*=[^>]*)?(\\s)*(/)?>", ""));
+						map.replace("title", map.get("title").replaceAll("&#39;", "'"));
+						map.replace("description", map.get("description").replaceAll("<(/)?([a-zA-Z]*)(\\s[a-zA-Z]*=[^>]*)?(\\s)*(/)?>", ""));
+						map.replace("description", map.get("description").replaceAll("&#39;", "'"));
+						log.info(map.toString());
+					})
+					.collect(Collectors.toList());
+
+			place_repo.insertNaverBlogs(naver_blog_list, fields_map);
+		}
+
+		List<Map<String, Object>> result_list = place_repo.selectNaverBlogs(fields_map);
+		List<Map<String, Object>> return_list = new ArrayList<>();
+		for(Map<String, Object> result_map : result_list){
+			Map<String, Object> temp_map = new LinkedHashMap<>();
+			temp_map.put("index", result_map.get("row_number"));
+			temp_map.put("review_id", result_map.get("review_id"));
+			temp_map.put("title", result_map.get("title"));
+			temp_map.put("write_date", result_map.get("write_date"));
+			temp_map.put("author", result_map.get("author"));
+			temp_map.put("description", result_map.get("description"));
+			temp_map.put("url", result_map.get("url"));
+			temp_map.put("thumbnail_url", result_map.get("thumbnail_url"));
+
+			return_list.add(temp_map);
+		}
+
+		return return_list;
+	}
+
+/*	private List<Map<String, Object>> parseItem(DocumentContext document, Map<String, String> request_param) throws Exception{
+		List<Map<String, Object>> result_list = new ArrayList<>();
+		org.codehaus.jackson.map.ObjectMapper mapper = new org.codehaus.jackson.map.ObjectMapper();
+
+		if(request_param.get("portal").equalsIgnoreCase("NAVER")) {
+			SimpleDateFormat origin_format = new SimpleDateFormat("yyyy년 M월 d일");
+			SimpleDateFormat new_format = new SimpleDateFormat("yyyy-MM-dd");
+
+			Map<String, String> request = document.read("$.NAVER.queries.request[0]");
+			List<Map<String, String>> nextPage = document.read("$.NAVER.queries[?(@.nextPage)].nextPage[0]");
+
+			if (Integer.parseInt(request.get("totalResults")) > 0) {
+				List<Map<String, Object>> items = document.read("$.NAVER.items[*]");
+				items.stream()
+						.forEach(item -> {
+							Map<String, List<Map<String, String>>> map = mapper.convertValue(item.get("pagemap"), Map.class);
+							Map<String, Object> temp_map = new HashMap<>();
+							MainDto dto = new MainDto();
+							temp_map.put("place_id", request_param.get("place_id"));
+							temp_map.put("portal", "GN");
+							temp_map.put("author", map.get("metatags").get(0).get("naverblog:nickname"));
+							String[] author_id = map.get("metatags").get(0).get("og:url").split("/");
+							temp_map.put("author_id", author_id[3]);
+							temp_map.put("write_time", "00:00:00");
+							temp_map.put("title", map.get("metatags").get(0).get("og:title"));
+							temp_map.put("description", map.get("metatags").get(0).get("og:description").trim());
+							temp_map.put("url", map.get("metatags").get(0).get("og:url"));
+							temp_map.put("thumbnail_url", map.get("cse_image").get(0).get("src"));
+							temp_map.put("start_index", String.valueOf(request.get("startIndex")));
+							if(nextPage.size()>0)
+								temp_map.put("next_index", String.valueOf(nextPage.get(0).get("startIndex")));
+							else
+								temp_map.put("next_index", null);
+
+							if(item.get("snippet").toString().indexOf("일")+1 > 10){
+								String published_date = item.get("snippet").toString().substring(0, item.get("snippet").toString().indexOf("일") + 1);
+								try {
+									published_date = LocalDate.parse(new_format.format(origin_format.parse(published_date))).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+									temp_map.put("write_date", published_date);
+								} catch (ParseException e) {
+									e.printStackTrace();
+								}
+							}else{
+								temp_map.put("write_date", "1900-01-01");
+							}
+
+							log.info(temp_map.toString());
+							result_list.add(temp_map);
+						});
+			} else {
+				throw new Exception("검색 결과가 없습니다.");
+			}
+		}else if(request_param.get("portal").equalsIgnoreCase("DAUM")){
+			Map<String, String> request = (Map<String, String>) document.read("$.DAUM.queries.request[0]");
+
+			if (Integer.parseInt(request.get("totalResults")) > 0) {
+				List<Map<String, Object>> items = document.read("$.DAUM.items[*]");
+				items.stream()
+						.filter( item -> {
+							Map<String, List<Map<String, String>>> map = mapper.convertValue(item.get("pagemap"), Map.class);
+							return map.get("metatags").get(0).containsKey("title")
+									&& map.get("metatags").get(0).containsKey("by")
+									&& map.get("metatags").get(0).containsKey("article:section")
+									&& (map.get("metatags").get(0).get("article:section").equals("일상다반사")
+									|| map.get("metatags").get(0).get("article:section").equals("맛집")
+									|| map.get("metatags").get(0).get("article:section").equals("카페·디저트"))
+									&& !map.get("cse_image").get(0).get("src").equals("https://t1.daumcdn.net/tistory_admin/static/images/openGraph/opengraph.png")
+									&& map.get("metatags").get(0).get("og:url").contains("tistory.com");
+						})
+						.forEach(item -> {
+							Map<String, List<Map<String, String>>> map = mapper.convertValue(item.get("pagemap"), Map.class);
+							MainDto dto = new MainDto();
+							dto.setKeyword(request_param.get("query"));
+							dto.setPortal(request_param.get("portal").toUpperCase());
+							if(map.get("metatags").get(0).get("by").indexOf("사용자 ") >= 0){
+								dto.setAuthor(map.get("metatags").get(0).get("by").replace("사용자 ", ""));
+							}else{
+								dto.setAuthor(map.get("metatags").get(0).get("by"));
+							}
+							dto.setPublished_date(ZonedDateTime.parse(map.get("metatags").get(0).get("article:published_time"))
+									.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+							dto.setThumbnail(map.get("cse_image").get(0).get("src"));
+							dto.setTitle(map.get("metatags").get(0).get("og:title"));
+							dto.setDescription(map.get("metatags").get(0).get("og:description"));
+							dto.setLink(map.get("metatags").get(0).get("og:url"));
+							dto.setStart_index(String.valueOf(request.get("startIndex")));
+							log.info(dto.toString());
+//							dto_list.add(dto);
+						});
+			} else {
+				throw new Exception("검색 결과가 없습니다.");
+			}
+		}else {
+			Map<String, String> request = (Map<String, String>) document.read("$.YOUTUBE.queries.request[0]");
+
+			if (Integer.parseInt(request.get("totalResults")) > 0) {
+				List<Map<String, String>> items = document.read("$.YOUTUBE.items[*]");
+				items.stream()
+						.filter(item -> {
+							Map<String, List<Map<String, String>>> map = mapper.convertValue(item.get("pagemap"), Map.class);
+							return map.containsKey("videoobject")
+									&& map.get("videoobject").get(0).get("genre").equalsIgnoreCase("People & Blogs");
+						})
+						.forEach(item -> {
+							Map<String, List<Map<String, String>>> map = mapper.convertValue(item.get("pagemap"), Map.class);
+							MainDto dto = new MainDto();
+							dto.setKeyword(request_param.get("query"));
+							dto.setPortal(request_param.get("portal").toUpperCase());
+							dto.setAuthor(map.get("videoobject").get(0).get("channelid"));
+							dto.setPublished_date(map.get("videoobject").get(0).get("uploaddate"));
+							dto.setThumbnail(map.get("videoobject").get(0).get("thumbnailurl"));
+							dto.setTitle(map.get("metatags").get(0).get("title"));
+							dto.setDescription(map.get("metatags").get(0).get("og:description"));
+							dto.setLink(map.get("metatags").get(0).get("og:url"));
+							dto.setStart_index(String.valueOf(request.get("startIndex")));
+							log.info(dto.toString());
+//							dto_list.add(dto);
+						});
+			} else {
+				throw new Exception("검색 결과가 없습니다.");
+			}
+		}
+
+		return result_list;
+	}*/
+
+	@Override
+	public List<Map<String, Object>> selectDaumBlog(Map<String, String> request_param) throws Exception{
+		Map<String, String> fields_map = new HashMap<>();
+		ObjectMapper mapper = new ObjectMapper();
+
+		PlaceDetailDto place_detail_dto = new PlaceDetailDto();
+		place_detail_dto.setPlace_id(request_param.get("place_id"));
+		Map<String, String> place_detail_map = mapper.convertValue(selectPlaceDetail(place_detail_dto), Map.class);
+		log.info(place_detail_map.toString());
+
+		fields_map.put("query", request_param.get("query"));
+		fields_map.put("place_id", request_param.get("place_id"));
+		fields_map.put("place_name", place_detail_map.get("place_name"));
+		fields_map.put("user_id", request_param.getOrDefault("user_id", "temp"));
+		fields_map.put("sns_division", request_param.getOrDefault("sns_division", "T"));
+		fields_map.put("size", request_param.getOrDefault("size", ""));
+
+		int count = place_repo.selectDaumBlogsCount(fields_map);
+		if(count < 1) {
+			String daum_blog_string = apiService.daumSearchBlog(fields_map);
+			log.info(daum_blog_string);
+
+			List<Map<String, String>> daum_blog_list = JsonPath.parse(daum_blog_string).read("$.documents");
+
+			daum_blog_list = daum_blog_list.stream()
+					.filter(map -> map.get("url").contains("tistory"))
+					.peek(map -> {
+						map.replace("title", map.get("title").replaceAll("<(/)?([a-zA-Z]*)(\\s[a-zA-Z]*=[^>]*)?(\\s)*(/)?>", ""));
+						map.replace("title", map.get("title").replaceAll("&#39;", "'"));
+						map.replace("contents", map.get("contents").replaceAll("<(/)?([a-zA-Z]*)(\\s[a-zA-Z]*=[^>]*)?(\\s)*(/)?>", ""));
+						map.replace("contents", map.get("contents").replaceAll("&#39;", "'"));
+						log.info(map.toString());
+					})
+					.collect(Collectors.toList());
+
+			place_repo.insertDaumBlogs(daum_blog_list, fields_map);
+		}
+
+		List<Map<String, Object>> result_list = place_repo.selectDaumBlogs(fields_map);
+		List<Map<String, Object>> return_list = new ArrayList<>();
+		for(Map<String, Object> result_map : result_list){
+			Map<String, Object> temp_map = new LinkedHashMap<>();
+			temp_map.put("index", result_map.get("row_number"));
+			temp_map.put("review_id", result_map.get("review_id"));
+			temp_map.put("title", result_map.get("title"));
+			temp_map.put("write_date", result_map.get("write_date"));
+			temp_map.put("author", result_map.get("author"));
+			temp_map.put("description", result_map.get("description"));
+			temp_map.put("url", result_map.get("url"));
+			temp_map.put("thumbnail_url", result_map.get("thumbnail_url"));
+
+			return_list.add(temp_map);
+		}
+
+		return return_list;
+	}
+
+	@Override
+	public List<Map<String, Object>> selectYoutubeReview(Map<String, String> request_param) throws Exception{
+		Map<String, String> fields_map = new HashMap<>();
+		ObjectMapper mapper = new ObjectMapper();
+
+		PlaceDetailDto place_detail_dto = new PlaceDetailDto();
+		place_detail_dto.setPlace_id(request_param.get("place_id"));
+		Map<String, String> place_detail_map = mapper.convertValue(selectPlaceDetail(place_detail_dto), Map.class);
+		log.info(place_detail_map.toString());
+
+		fields_map.put("query", request_param.get("query"));
+		fields_map.put("place_id", request_param.get("place_id"));
+		fields_map.put("place_name", place_detail_map.get("place_name"));
+		fields_map.put("user_id", request_param.getOrDefault("user_id", "temp"));
+		fields_map.put("sns_division", request_param.getOrDefault("sns_division", "T"));
+		fields_map.put("size", request_param.getOrDefault("size", ""));
+
+		int count = place_repo.selectYoutubeReviewsCount(fields_map);
+		if(count < 1) {
+			String youtube_review_string = apiService.youtubeSearchReviews(fields_map);
+			List<Map<String, String>> youtube_review_list = JsonPath.parse(youtube_review_string).read("$.documents");
+
+			youtube_review_list = youtube_review_list.stream()
+					.filter(map -> map.get("url").contains("youtube"))
+					.peek(map -> log.info(map.toString()))
+					.collect(Collectors.toList());
+
+			place_repo.insertYoutubeReviews(youtube_review_list, fields_map);
+		}
+
+		List<Map<String, Object>> result_list = place_repo.selectYoutubeReviews(fields_map);
+		List<Map<String, Object>> return_list = new ArrayList<>();
+		for(Map<String, Object> result_map : result_list){
+			Map<String, Object> temp_map = new LinkedHashMap<>();
+			temp_map.put("index", result_map.get("row_number"));
+			temp_map.put("review_id", result_map.get("review_id"));
+			temp_map.put("title", result_map.get("y_title"));
+			temp_map.put("write_date", result_map.get("write_date"));
+			temp_map.put("author", result_map.get("author"));
+			temp_map.put("url", result_map.get("y_video_id"));
+			temp_map.put("thumbnail_url", result_map.get("y_thumbnail_url"));
+
+			return_list.add(temp_map);
+		}
+
+		return return_list;
+	}
+
+	@Override
+	public List<Map<String, Object>> selectGoogleReview(Map<String, String> request_param) throws Exception{
+		Map<String, String> fields_map = new HashMap<>();
+		ObjectMapper mapper = new ObjectMapper();
+
+		PlaceDetailDto place_detail_dto = new PlaceDetailDto();
+		place_detail_dto.setPlace_id(request_param.get("place_id"));
+		Map<String, String> place_detail_map = mapper.convertValue(selectPlaceDetail(place_detail_dto), Map.class);
+		log.info(place_detail_map.toString());
+
+		fields_map.put("query", request_param.get("query"));
+		fields_map.put("place_id", request_param.get("place_id"));
+		fields_map.put("google_place_id", place_detail_map.get("google_place_id"));
+		fields_map.put("place_name", place_detail_map.get("place_name"));
+		fields_map.put("user_id", request_param.getOrDefault("user_id", "temp"));
+		fields_map.put("sns_division", request_param.getOrDefault("sns_division", "T"));
+		fields_map.put("size", request_param.getOrDefault("size", ""));
+
+		int count = place_repo.selectGoogleReviewsCount(fields_map);
+		if(count < 1) {
+			String google_review_string = apiService.GoogleSearchReviews(fields_map);
+			List<Map<String, String>> google_review_list = JsonPath.parse(google_review_string).read("$.result.reviews");
+
+			google_review_list = google_review_list.stream()
+					.peek(map -> {
+//						map.replace("text", map.get("text").replaceAll("\n", ""));
+						log.info(map.toString());
+					})
+					.collect(Collectors.toList());
+
+			place_repo.insertGoogleReviews(google_review_list, fields_map);
+		}
+
+		List<Map<String, Object>> result_list = place_repo.selectGoogleReviews(fields_map);
+		List<Map<String, Object>> return_list = new ArrayList<>();
+		for(Map<String, Object> result_map : result_list){
+			Map<String, Object> temp_map = new LinkedHashMap<>();
+			temp_map.put("index", result_map.get("row_number"));
+			temp_map.put("review_id", result_map.get("review_id"));
+			temp_map.put("author", result_map.get("author"));
+			temp_map.put("g_content", result_map.get("g_content"));
+			temp_map.put("g_rating", result_map.get("g_rating"));
+			temp_map.put("write_date", result_map.get("write_date"));
+
+			return_list.add(temp_map);
+		}
+
+		return return_list;
+	}
 }

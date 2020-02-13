@@ -24,8 +24,8 @@ import com.place.dto.PlaceDto;
 public class KakaoUserApi {
 	//properties 에 작성 한 restfulApiKey 세팅
 	private String restfulKey = "b4bd7e75365a705323622c57d0b7e406";
-	
-	
+
+
 	//기본적인 정보를 바탕 (access_token등) 으로 유저에 대한 상세 정보 조회
 	public JSONObject kakaoUserDetailData(String access_token) {
 		String requestUrl = "https://kapi.kakao.com/v2/user/me"; //호출 할 HOST

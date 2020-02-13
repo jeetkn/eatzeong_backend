@@ -9,7 +9,6 @@
 		INSERT INTO portal_review_tb(
 		review_id,
 		place_id,
-		place_seq,
 		author,
 		portal,
 		del_flag,
@@ -34,7 +33,6 @@
 		VALUES(
 		'PR' || nextval('portal_review_id')
 		, #{place_id}
-		, #{place_seq}
 		, #{author}
 		, #{portal}
 		, 'N'
@@ -63,7 +61,6 @@
 		(SELECT
 			review_id,
 			place_id,
-			place_seq,
 			author,
 			y_description,
 			y_title,
@@ -84,7 +81,6 @@
 		(SELECT
 			review_id,
 			place_id,
-			place_seq,
 			author,
 			y_description,
 			y_title,
@@ -108,7 +104,6 @@
 		SELECT
 			review_id,
 			place_id,
-			place_seq,
 			author,
 			y_description,
 			y_title,
@@ -159,6 +154,7 @@
 		where 1 = 1
 		and place_id = #{place_id}
 		and review_user_id = #{review_user_id}
+		and sns_division = #{sns_division}
 		and del_flag != 'Y'
 	</select>
 	
@@ -169,8 +165,8 @@
 				review_id,
 				review_contents,
 				review_user_id,
+				sns_division,
 				attach_number,
-				like_count,
 				rating_point,
 				add_date,
 				add_time,
@@ -185,6 +181,7 @@
 			'RV' || nextval('app_review_id')
 			, #{review_contents}
 			, #{review_user_id}
+			, #{sns_division}
 			<choose>
 				<when test='file_flag != null and file_flag == true'>
 					, 'AT' || nextval('attachment_id')
@@ -193,7 +190,6 @@
 					, null
 				</otherwise>
 			</choose>
-			, '0'
 			, #{rating_point}
 			, current_date
 			, current_time
@@ -207,7 +203,7 @@
 	</insert>
 	
 	<!--  appReview attachment Insert --> 
-	<insert id="insertAppReviewAttachment" parameterType="List">
+	<insert id="insertAppReviewAttachment" parameterType="HashMap">
 		INSERT INTO 
 			attachments_list_tb(
 				attach_number,
@@ -249,13 +245,18 @@
 		select
 			app_review.place_id,
 			app_review.review_id,
+			app_review.sns_division,
+			getusernickname(app_review.review_user_id, app_review.sns_division) as nickname,
 			app_review.review_contents,
 			app_review.review_user_id,
-			app_review.like_count,
 			app_review.rating_point,
 			app_review.attach_number,
 			attachment.attach_seq,
-			attachment.attach_name
+			attachment.attach_name,
+			getuserprofile(app_review.review_user_id, app_review.sns_division) as profile_image,
+			app_review.add_date,
+			getappreviewlikecount(app_review.review_id) as like_count,
+			getappreviewlikeflag(app_review.review_id, #{user_id}, #{sns_division}) as like_flag
 		from
 			app_review_tb app_review
 		left join 
@@ -265,6 +266,7 @@
 		where 1 = 1
 			and place_id = #{place_id}
 			and review_user_id = #{review_user_id}
+			and sns_division = #{sns_division}
 			and app_review.del_flag != 'Y'
 	</select>
 	
@@ -273,13 +275,18 @@
 		select
 			app_review.place_id,
 			app_review.review_id,
+			app_review.sns_division,
+			getusernickname(app_review.review_user_id, app_review.sns_division) as nickname,
 			app_review.review_contents,
 			app_review.review_user_id,
-			app_review.like_count,
 			app_review.rating_point,
 			app_review.attach_number,
 			attachment.attach_seq,
-			attachment.attach_name
+			attachment.attach_name,
+			getuserprofile(app_review.review_user_id, app_review.sns_division) as profile_image,
+			app_review.add_date,
+			getappreviewlikecount(app_review.review_id) as like_count,
+			getappreviewlikeflag(app_review.review_id, #{user_id}, #{sns_division}) as like_flag
 		from
 			app_review_tb app_review
 		left join 
@@ -322,4 +329,31 @@
 		where
 			review_id = #{review_id};
 	</update>
+
+	<select id="selectMyReviewList" resultType="com.place.dto.AppReviewDto" parameterType="com.place.dto.AppReviewDto">
+		select
+			review.review_id ,
+			review.review_user_id,
+			place.place_name,
+			place.place_id,
+			trunc(avgreviewrating(review.place_id), 1) as appreview_rating,
+			review.rating_point,
+			review.add_date,
+			getappreviewlikecount(review.review_id ) as like_count,
+			getappreviewlikeflag(review.review_id, #{user_id}, #{sns_division}) as like_flag,
+			place.category,
+			category.category_name
+		from
+			app_review_tb review
+		right join places_tb place
+			on review.place_id = place.place_id
+		left join category_tb category
+			on place.category = category.category
+		where
+			1 = 1
+			and review.del_flag != 'Y'
+			and review.review_user_id = #{user_id}
+			and review.sns_division = #{sns_division}
+		group by review.review_id, review.review_user_id, place.place_name, place.place_id, appreview_rating, review.rating_point, review.add_date, like_count, like_flag, place.category, category.category_name
+	</select>
 </mapper>

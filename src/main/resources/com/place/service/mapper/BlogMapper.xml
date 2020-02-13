@@ -74,7 +74,6 @@
 		INSERT INTO portal_blog_tb(
 		review_id,
 		place_id,
-		place_seq,
 		author,
 		portal,
 		del_flag,
@@ -90,7 +89,6 @@
 		VALUES(
 		'PB' || nextval('portal_review_id')
 		, #{place_id}
-		, #{place_seq}
 		, #{author}
 		, #{portal}
 		, 'N'

@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+<!--    <include resource="org/springframework/boot/logging/logback/base.xml"/>-->
+<!--    <logger name="com.example.asyncSample01" level="INFO"/>-->
+
+    <!-- Created By yeoseong_yoon -->
+    <!-- 로그 경로 변수 선언 -->
+
+    <!-- Console Appender -->
+    <springProfile name="console-logging">
+        <appender name="LOCAL_CONSOLE_POLICY" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>
+                    %-5level %d{HH:mm:ss.SSS} [%thread] %F:%L %method - %msg%n
+                </pattern>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <springProfile name="file-logging">
+        <appender name="INFO_FILE_POLICY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <file>${LOG_PATH}/zzazan.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%thread] [%logger{36}] - %m%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/%d{yyyy_MM_dd}_%i.zzazan.log</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>14</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
+
+    <springProfile name="file-logging">
+        <appender name="ERROR_FILE_POLICY" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                <level>INFO</level>
+            </filter>
+            <file>${LOG_PATH}/zzazan_error.log</file>
+            <encoder>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss} [%-5level] [%thread] [%logger{36}] - %m%n</pattern>
+            </encoder>
+            <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                <fileNamePattern>${LOG_PATH}/%d{yyyy_MM_dd}_%i.zzazan.log</fileNamePattern>
+                <maxFileSize>50MB</maxFileSize>
+                <maxHistory>14</maxHistory>
+                <totalSizeCap>1GB</totalSizeCap>
+            </rollingPolicy>
+        </appender>
+    </springProfile>
+
+    <logger name="com.place.MainStartClass" level="INFO"/>
+
+    <!--DB 로그-->
+    <!--SQL문만을 로그로 남기며, PreparedStatement일 경우 관련된 argument 값으로 대체된 SQL문이 보여진다.-->
+    <logger name="jdbc.sqlonly" level="INFO"/>
+    <!--SQL문과 해당 SQL을 실행시키는데 수행된 시간 정보(milliseconds)를 포함한다.-->
+    <logger name="jdbc.sqltiming" level="OFF"/>
+    <!--ResultSet을 제외한 모든 JDBC 호출 정보를 로그로 남긴다.-->
+    <logger name="jdbc.audit" level="OFF"/>
+    <!--ResultSet을 포함한 모든 JDBC 호출 정보를 로그로 남긴다.-->
+    <logger name="jdbc.resultset" level="OFF"/>
+    <!--SQL 결과 조회된 데이터의 table을 로그로 남긴다.-->
+    <logger name="jdbc.resultsettable" level="INFO"/>
+    <logger name="jdbc.connection" level="OFF"/>
+
+    <root level="INFO">
+        <springProfile name="console-logging">
+            <appender-ref ref="LOCAL_CONSOLE_POLICY" />
+        </springProfile>
+        <springProfile name="file-logging">
+            <appender-ref ref="INFO_FILE_POLICY" />
+            <appender-ref ref="ERROR_FILE_POLICY" />
+        </springProfile>
+    </root>
+</configuration>

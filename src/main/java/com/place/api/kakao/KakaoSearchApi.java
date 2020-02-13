@@ -12,7 +12,7 @@ public class KakaoSearchApi extends CommonApi {
 
 	URL url;
 	private String restfulKey = "b4bd7e75365a705323622c57d0b7e406";
-	
+
 	public KakaoSearchApi() {
 		this.setDomain("https://dapi.kakao.com/v2/local/search/keyword.json?");
 		this.setKey("");

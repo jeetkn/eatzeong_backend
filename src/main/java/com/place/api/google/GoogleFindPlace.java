@@ -17,7 +17,7 @@ import com.place.api.CommonApi;
 
 
 public class GoogleFindPlace extends CommonApi{
-	
+
 	RestTemplate restTemplate = new RestTemplate(); 
 	URI uri;
 	

@@ -6,7 +6,6 @@ import lombok.Data;
 public class PortalReviewDto {
 	private String review_id;
 	private String place_id;
-	private int place_seq;
 	private String author;
 	private String write_time;
 	private String write_date;

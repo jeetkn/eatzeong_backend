@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.place.service.mapper.UserMapper">
+
+    <select id="selectEmailCount" resultType="Int" parameterType="com.place.dto.UserDto">
+        select
+            count(*)
+        from
+            general_users_tb
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </select>
+
+    <insert id="insertGeneralUser" parameterType="com.place.dto.UserDto">
+        insert into
+            general_users_tb (
+                user_id,
+                sns_division,
+                user_password,
+                phone_no,
+                birth_day,
+                nickname,
+                secession_flag,
+                join_date,
+                join_time,
+                device_token,
+                social_access_token,
+                profile_code,
+                recently_login_date,
+                phone_certification_flag,
+                password_reset_cnt,
+                password_update_date,
+                accept_terms_flag,
+                push_alarm_flag,
+                add_date,
+                add_time,
+                update_date,
+                update_time,
+                category,
+                gender,
+                social_refresh_token,
+                social_id
+                )
+        values(
+                #{email},
+                #{sns_division},
+                #{password},
+                #{phone_number},
+                #{birthday}::date,
+                #{nickname},
+                'N',
+                current_date,
+                current_time,
+                null,
+                null,
+                null,
+                current_date,
+                'Y',
+                0,
+                current_date,
+                'Y',
+                'Y',
+                current_date,
+                current_time,
+                current_date,
+                current_time,
+                'ALL',
+                'male',
+                null,
+                null
+            )
+    </insert>
+
+    <select id="selectPassword" resultType="String" parameterType="com.place.dto.UserDto">
+        select
+            user_password
+        from
+            general_users_tb
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </select>
+
+    <select id="selectPasswordResetCnt" resultType="Int" parameterType="com.place.dto.UserDto">
+        select
+            password_reset_cnt
+        from
+            general_users_tb
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </select>
+
+    <update id="updateLoginSuccess" parameterType="com.place.dto.UserDto">
+        update general_users_tb
+            set
+            password_reset_cnt = 0,
+            password_update_date = current_date,
+            update_date = current_date,
+            update_time = current_time,
+            recently_login_date = current_date
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </update>
+
+    <update id="updateLoginFailed" parameterType="com.place.dto.UserDto">
+        update general_users_tb
+            set
+            password_reset_cnt = password_reset_cnt + 1,
+            password_update_date = current_date,
+            update_date = current_date,
+            update_time = current_time
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </update>
+
+    <update id="updatePassword" parameterType="com.place.dto.UserDto">
+        update general_users_tb
+            set
+            user_password = #{password},
+            password_reset_cnt = 0,
+            password_update_date = current_date,
+            update_date = current_date,
+            update_time = current_time
+        where
+            1 = 1
+            and user_id = #{email}
+            and sns_division = #{sns_division}
+            and secession_flag != 'Y'
+    </update>
+
+    <select id="selectNotice" resultType="HashMap">
+        select
+            *
+        from
+            notice_tb
+        where
+            1 = 1
+            and del_flag != 'Y'
+        order by add_date desc , add_time desc
+    </select>
+
+    <select id="selectTerms" resultType="HashMap">
+        select
+            *
+        from
+            terms_of_service_tb
+        where
+            1 = 1
+            and del_flag != 'Y'
+        order by terms_division, add_date
+    </select>
+
+    <select id="selectFaqs" resultType="HashMap">
+        select
+            *
+        from
+            faq_tb
+        where
+            1 = 1
+            and del_flag != 'Y'
+    </select>
+</mapper>

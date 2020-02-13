@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.annotation.Resource;
 
 import com.place.dto.MainDto;
+import com.place.dto.PlaceDto;
 import org.springframework.stereotype.Repository;
 
 import com.place.service.mapper.CommonMapper;
@@ -61,11 +62,11 @@ public class CommonRepository {
 			mapper.updateBookmarkReviewBlog(allRequestParams);
 	}
 
-    public int selectMainCount(Map<String, String> request_param) {
+    public int selectMainCount(Map<String, String> request_param) throws Exception {
 		return mapper.selectMainCount(request_param);
     }
 
-    public void insertCustomSearch(List<MainDto> main_dto_list) throws Exception {
+    public void insertCustomSearch(List<MainDto> main_dto_list){
 		main_dto_list.stream()
 				.forEach(dto -> {
 					int count = mapper.selectCustomSearchCount(dto);
@@ -74,7 +75,27 @@ public class CommonRepository {
 				});
     }
 
-	public List<MainDto> selectMain(Map<String, String> request_param) {
+	public List<MainDto> selectMain(Map<String, String> request_param) throws Exception {
 		return mapper.selectMain(request_param);
+	}
+
+	public List<Map<String, String>> selectFirstArea() throws Exception{
+		return mapper.selectFirstArea();
+	}
+
+	public List<Map<String, String>> selectSecondArea(String area) throws Exception{
+		return mapper.selectSecondArea(area);
+	}
+
+	public List<Object> selectSuggestArea() throws Exception{
+		return mapper.selectSuggestArea();
+	}
+
+	public int selectMainPlacesCount(PlaceDto place_dto) {
+		return mapper.selectMainPlacesCount(place_dto);
+	}
+
+	public List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto) {
+		return mapper.selectMainPlaces(place_dto);
 	}
 }

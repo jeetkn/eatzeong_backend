@@ -30,13 +30,13 @@ public interface ReviewMapper {
 	
 	public List<AppReviewDto> selectAppReviewList(AppReviewDto app_review_dto) throws Exception;
 	
-	public int insertAppReview(AppReviewDto app_review_dto) throws Exception;
+	public void insertAppReview(AppReviewDto app_review_dto) throws Exception;
 	
-	public int insertAppReviewAttachment(List<Map<String, String>> attachment_list) throws Exception;
+	public void insertAppReviewAttachment(Map<String, String> attachment_map) throws Exception;
 	
-	public int updateAppReview(AppReviewDto app_review_dto) throws Exception;
+	public void updateAppReview(AppReviewDto app_review_dto) throws Exception;
 	
-	public int deleteAppReview(AppReviewDto app_review_dto) throws Exception;
+	public void deleteAppReview(AppReviewDto app_review_dto) throws Exception;
 	
 	
 	public List<PortalReviewDto> selectReviews(PlaceDetailDto place_dto) throws Exception;
@@ -46,5 +46,6 @@ public interface ReviewMapper {
 	public int selectPortalReviewCount(List<PortalReviewDto> review_list) throws Exception;
 	
 	public int insertReview(List<PortalReviewDto> review_list) throws Exception;
-	
+
+    public List<AppReviewDto> selectMyReviewList(AppReviewDto review_dto) throws Exception;
 }

@@ -28,6 +28,41 @@ public interface PlaceMapper {
 	
 	public List<PlaceDetailDto> selectPlaceDetail(PlaceDetailDto dto) throws Exception;
 	
-	public int updatePlace(PlaceDetailDto dto) throws Exception;
-	
+	public void updatePlace(PlaceDetailDto dto) throws Exception;
+
+	void insertKeyword(PlaceDto dto) throws Exception;
+
+	List<Map<String, Object>> getPopularSearches() throws Exception;
+
+    int selectNaverBlogCount(Map<String, String> result_map) throws Exception;
+
+	void insertNaverBlog(Map<String, String> result_map) throws Exception;
+
+	int selectNaverBlogsCount(Map<String, String> fields_map) throws Exception;
+
+	int selectDaumBlogsCount(Map<String, String> fields_map) throws Exception;
+
+	List<Map<String, Object>> selectNaverBlogs(Map<String, String> fields_map) throws Exception;
+
+	int selectDaumBlogCount(Map<String, String> temp_map) throws Exception;
+
+	void insertDaumBlog(Map<String, String> temp_map) throws Exception;
+
+	List<Map<String, Object>> selectDaumBlogs(Map<String, String> fields_map) throws Exception;
+
+	int selectYoutubeReviewsCount(Map<String, String> fields_map) throws Exception;
+
+	int selectYoutubeReviewCount(Map<String, String> temp_map) throws Exception;
+
+	void insertYoutubeReview(Map<String, String> temp_map) throws Exception;
+
+	List<Map<String, Object>> selectYoutubeReviews(Map<String, String> fields_map) throws Exception;
+
+	int selectGoogleReviewsCount(Map<String, String> fields_map) throws Exception;
+
+	int selectGoogleReviewCount(Map<String, String> temp_map) throws Exception;
+
+	void insertGoogleReview(Map<String, String> temp_map) throws Exception;
+
+	List<Map<String, Object>> selectGoogleReviews(Map<String, String> fields_map) throws Exception;
 }
