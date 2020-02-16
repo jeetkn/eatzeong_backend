@@ -44,6 +44,10 @@
     <logger name="jdbc.resultsettable" level="DEBUG"/>
     <logger name="jdbc.connection" level="OFF"/>
 
+    <logger name="reactor.netty.http.server.AccessLog" level="INFO" additivity="false">
+        <appender-ref ref="async"/>
+    </logger>
+
     <root level="INFO"> <!-- DEBUG -->
         <appender-ref ref="CONSOLE"/>
     </root>
