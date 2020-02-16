@@ -28,4 +28,18 @@ public interface UserMapper {
     List<Map<String, Object>> selectTerms() throws Exception;
 
     List<Map<String, Object>> selectFaqs() throws Exception;
+
+    int selectGeneralUser(UserDto userDto) throws Exception;
+
+    List<String> findId(UserDto userDto) throws Exception;
+
+    int findPassword(UserDto userDto) throws Exception;
+
+    void accountClose(UserDto userDto) throws Exception;
+
+    void updateProfileImage(Map<String, String> attachment_map) throws Exception;
+
+    UserDto selectUser(UserDto userDto) throws Exception;
+
+    UserDto selectUserInfo(UserDto userDto) throws Exception;
 }

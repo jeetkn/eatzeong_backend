@@ -356,4 +356,44 @@
 			and review.sns_division = #{sns_division}
 		group by review.review_id, review.review_user_id, place.place_name, place.place_id, appreview_rating, review.rating_point, review.add_date, like_count, like_flag, place.category, category.category_name
 	</select>
+
+	<select id="selectLikeReview" resultType="Int" parameterType="com.place.dto.AppReviewDto">
+		select
+			count(*) as count
+		from
+			appreview_like_tb
+		where
+		    1 = 1
+			and review_id = #{review_id}
+			and add_user_id = #{user_id}
+			and sns_division = #{sns_division}
+	</select>
+
+	<insert id="insertLikeReview" parameterType="com.place.dto.AppReviewDto">
+		insert into
+			appreview_like_tb (
+				review_id,
+				add_user_id,
+				sns_division,
+				add_date,
+				add_time
+			)
+		values (
+			   #{review_id},
+			   #{user_id},
+			   #{sns_division},
+			   current_date,
+			   current_time
+			   )
+	</insert>
+
+	<delete id="deleteLikeReview" parameterType="com.place.dto.AppReviewDto">
+		delete
+			from appreview_like_tb
+		where
+			1 = 1
+			and review_id = #{review_id}
+			and add_user_id = #{user_id}
+			and sns_division = #{sns_division}
+	</delete>
 </mapper>

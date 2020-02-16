@@ -28,4 +28,6 @@ public interface CommonServiceInterface {
 	int selectMainPlacesCount(PlaceDto place_dto) throws Exception;
 
 	List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto) throws Exception;
+
+    Map<String, Object> selectBookmarkFlag(Map<String, String> allRequestParams) throws Exception;
 }

@@ -119,4 +119,48 @@ public class PlaceRepository {
 	public List<Map<String, Object>> selectGoogleReviews(Map<String, String> fields_map) throws Exception{
 		return mapper.selectGoogleReviews(fields_map);
 	}
+
+    public int selectPlaceBookmark(PlaceDetailDto detail_dto) throws Exception{
+		return mapper.selectPlaceBookmark(detail_dto);
+    }
+
+	public int selectPlaceAppReviewFlag(PlaceDetailDto detail_dto) throws Exception{
+		return mapper.selectPlaceAppReviewFlag(detail_dto);
+	}
+
+    public List<Map<String, Object>> selectEatzeongReviews(Map<String, String> request_param) throws Exception{
+		return mapper.selectEatzeongReviews(request_param);
+    }
+
+	public List<Map<String, Object>> selectEatzeongReviewAttachments(Map<String, Object> result_map) throws Exception{
+		return mapper.selectEatzeongReviewAttachments(result_map);
+	}
+
+	public void insertBlacklist(Map<String, String> request_param) throws Exception{
+		mapper.insertBlacklist(request_param);
+	}
+
+	public int selectBlacklistCount(Map<String, String> request_param) throws Exception{
+		return mapper.selectBlacklistCount(request_param);
+	}
+
+	public void deleteBlacklist(Map<String, String> request_param) throws Exception{
+		mapper.deleteBlacklist(request_param);
+	}
+
+	public void deleteBlacklistOne(Map<String, String> request_param) throws Exception{
+		mapper.deleteBlacklistOne(request_param);
+	}
+
+    public Map<String, Object> selectBlacklistFlag(Map<String, String> request_param) throws Exception{
+		return mapper.selectBlacklistFlag(request_param);
+    }
+
+	public List<Map<String, Object>> selectBlacklistAuthor(Map<String, String> request_param) throws Exception{
+		return mapper.selectBlacklistAuthor(request_param);
+	}
+
+	public List<Map<String, Object>> selectBlacklistPost(Map<String, String> request_param) throws Exception{
+		return mapper.selectBlacklistPost(request_param);
+	}
 }

@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.stereotype.Repository;
-import org.springframework.stereotype.Service;
 
 import com.place.dto.PlaceDetailDto;
 import com.place.dto.PlaceDto;
@@ -65,4 +64,26 @@ public interface PlaceMapper {
 	void insertGoogleReview(Map<String, String> temp_map) throws Exception;
 
 	List<Map<String, Object>> selectGoogleReviews(Map<String, String> fields_map) throws Exception;
+
+    int selectPlaceBookmark(PlaceDetailDto detail_dto) throws Exception;
+
+	int selectPlaceAppReviewFlag(PlaceDetailDto detail_dto) throws Exception;
+
+	List<Map<String, Object>> selectEatzeongReviews(Map<String, String> request_param) throws Exception;
+
+	List<Map<String, Object>> selectEatzeongReviewAttachments(Map<String, Object> result_map) throws Exception;
+
+    List<Map<String, Object>> selectBlacklistAuthor(Map<String, String> request_param) throws Exception;
+
+    List<Map<String, Object>> selectBlacklistPost(Map<String, String> request_param) throws Exception;
+
+	void insertBlacklist(Map<String, String> request_param) throws Exception;
+
+	int selectBlacklistCount(Map<String, String> request_param) throws Exception;
+
+	void deleteBlacklist(Map<String, String> request_param) throws Exception;
+
+	void deleteBlacklistOne(Map<String, String> request_param) throws Exception;
+
+	Map<String, Object> selectBlacklistFlag(Map<String, String> request_param) throws Exception;
 }

@@ -26,6 +26,7 @@ public class MainStartClass {
 //        System.setProperty("reactor.netty.ioWorkerCount", "1");
 //        System.setProperty("reactor.ipc.netty.pool.maxConnections", "2000");
 //        System.setProperty("server.tomcat.max-threads", "1");
+        System.setProperty("reactor.netty.http.server.accessLogEnabled", "true");
         new File(System.getProperty("user.dir")+"/log").mkdirs();
         new File(System.getProperty("user.dir")+ "/image/review").mkdirs();
         new File(System.getProperty("user.dir")+ "/image/profile").mkdirs();

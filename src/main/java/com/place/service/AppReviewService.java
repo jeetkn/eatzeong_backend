@@ -297,4 +297,17 @@ public class AppReviewService implements AppReviewServiceInterface {
 
 		return review_list;
 	}
+
+	@Override
+	public void insertLikeReview(AppReviewDto app_review_dto) throws Exception{
+		int count = app_review.selectLikeReview(app_review_dto);
+		if(count < 1)
+			app_review.insertLikeReview(app_review_dto);
+		else
+			throw new Exception("이미 좋아요하였습니다.");
+	}
+
+	public void deleteLikeReview(AppReviewDto app_review_dto) throws Exception{
+		app_review.deleteLikeReview(app_review_dto);
+	}
 }

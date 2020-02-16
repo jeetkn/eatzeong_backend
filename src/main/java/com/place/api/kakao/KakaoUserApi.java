@@ -71,10 +71,8 @@ public class KakaoUserApi {
 			   jsonObj = (JSONObject) obj;
 			   
 		} catch (UnsupportedEncodingException | ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return jsonObj;
@@ -128,10 +126,8 @@ public class KakaoUserApi {
 			   System.out.println("document data"+jsonObj);
 			   System.out.println("json 파싱 데이터 : " + jsonObj.toString());
 		} catch (UnsupportedEncodingException | ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

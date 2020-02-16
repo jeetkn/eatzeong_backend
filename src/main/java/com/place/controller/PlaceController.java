@@ -2,17 +2,18 @@ package com.place.controller;
 
 import com.google.common.collect.Maps;
 import com.place.dto.*;
+import com.place.exception.ExistException;
 import com.place.service.PlaceService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.ibatis.builder.ParameterExpression;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.security.InvalidParameterException;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/v1")
@@ -34,7 +35,7 @@ public class PlaceController {
 
 		try {
 			if(keyword.isBlank() || keyword==null)
-				throw new Exception("필수 파라미터를 확인해주세요.");
+				throw new Exception("Invalid parameter");
 
 			dto.setKeyword(keyword.trim());
 			return_dto.setDataList(placeService.selectPlaceList(dto));
@@ -44,7 +45,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
@@ -75,7 +76,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
@@ -98,7 +99,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
@@ -120,7 +121,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
@@ -142,7 +143,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
@@ -152,7 +153,7 @@ public class PlaceController {
 
 	@GetMapping(value = "/places/{place_id}/reviews/google")
 	public Dto<List<Map<String, Object>>> selectGoogleReviews(@PathVariable String place_id,
-															   @RequestParam Map<String, String> request_param){
+															  @RequestParam Map<String, String> request_param){
 		Dto<List<Map<String, Object>>> return_dto = new Dto<>();
 
 		try{
@@ -164,7 +165,29 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
+			return_dto.setDataList(Arrays.asList(error));
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
+	@GetMapping(value = "/places/{place_id}/reviews/eatzeong")
+	public Dto<List<Map<String, Object>>> selectEatzeongReviews(@PathVariable String place_id,
+															  @RequestParam Map<String, String> request_param){
+		Dto<List<Map<String, Object>>> return_dto = new Dto<>();
+
+		try{
+			request_param.put("place_id", place_id);
+			return_dto.setDataList(placeService.selectEatzeongReview(request_param));
+		}catch (Exception e){
+			var error = Maps.newHashMap(new HashMap<String, Object>());
+			error.put("error_message", e.getMessage());
+
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
@@ -212,7 +235,7 @@ public class PlaceController {
 
 		try {
 			if (place_id == null || place_id.isBlank())
-				throw new Exception("필수 파라미터를 확인해주세요.");
+				throw new Exception("Invalid parameter");
 			if (!NumberUtils.isCreatable(start_index))
 				throw new Exception("page 파라미터를 확인해주세요.");
 			if (Integer.parseInt(start_index) < 0)
@@ -232,7 +255,7 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
@@ -259,7 +282,7 @@ public class PlaceController {
 //
 //		if(place_id == null || place_id.isBlank()) {
 //			return_dto.setCode(400);
-//			return_dto.setMessage("필수 파라미터를 확인해주세요.");
+//			return_dto.setMessage("Invalid parameter");
 //			return return_dto;
 //		}
 //		if (!NumberUtils.isCreatable(start_page)) {
@@ -313,11 +336,157 @@ public class PlaceController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Arrays.asList(error));
 			return return_dto;
 		}
 
 		return return_dto;
 	}
+
+	@GetMapping("/blacklist")
+	public Dto<Map<String, Object>> selectBlacklistAuthor(@RequestParam Map<String, String> request_param){
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+
+		try{
+			if (!request_param.containsKey("user_id") || request_param.get("user_id").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("sns_division") || request_param.get("sns_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+
+			return_dto.setDataList(placeService.selectBlacklist(request_param));
+
+		} catch (InvalidParameterException e){
+			e.printStackTrace();
+			return_dto.setCode(400);
+			return_dto.setMessage("Invalid parameter");
+			return return_dto;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return return_dto;
+		}
+		return return_dto;
+	}
+
+
+
+	@GetMapping("/reviews/{review_id}/blacklist")
+	public Dto<Map<String, Object>> selectBlacklistFlag(@PathVariable String review_id,
+														@RequestParam Map<String, String> request_param){
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+		Map<String, Object> return_map = new LinkedHashMap<>();
+
+		try{
+			if (!request_param.containsKey("user_id") || request_param.get("user_id").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("sns_division") || request_param.get("sns_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+
+			request_param.put("review_id", review_id);
+			return_map = placeService.selectBlacklistFlag(request_param);
+			return_dto.setDataList(return_map);
+
+		}catch (ExistException e){
+			e.printStackTrace();
+			return_dto.setCode(409);
+			return_dto.setMessage("Already exist data");
+			return return_dto;
+		} catch (InvalidParameterException e){
+			e.printStackTrace();
+			return_dto.setCode(400);
+			return_dto.setMessage("Invalid parameter");
+			return return_dto;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
+	@PostMapping("/reviews/{review_id}/blacklist")
+	public Dto<Map<String, Object>> insertBlacklist(@PathVariable String review_id,
+													@RequestParam Map<String, String> request_param){
+
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+		Map<String, Object> return_map = new LinkedHashMap<>();
+
+		try {
+			if (!request_param.containsKey("blacklist_division") || request_param.get("blacklist_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("portal") || request_param.get("portal").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("author") || request_param.get("author").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("user_id") || request_param.get("user_id").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("sns_division") || request_param.get("sns_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+
+			request_param.put("review_id", review_id);
+			request_param.put("portal", request_param.get("portal").toUpperCase());
+			placeService.insertBlacklist(request_param);
+			return_dto.setDataList(return_map);
+		}catch (ExistException e){
+			e.printStackTrace();
+			return_dto.setCode(409);
+			return_dto.setMessage("Already exist data");
+			return return_dto;
+		} catch (InvalidParameterException e){
+			e.printStackTrace();
+			return_dto.setCode(400);
+			return_dto.setMessage("Invalid parameter");
+			return return_dto;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
+	@DeleteMapping("/reviews/blacklist")
+	public Dto<Map<String, Object>> deleteBlacklist(@Validated @RequestParam Map<String, String> request_param){
+
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+
+		try {
+			if (!request_param.containsKey("blacklist_division") || request_param.get("blacklist_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("portal") || request_param.get("portal").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("author") || request_param.get("author").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("user_id") || request_param.get("user_id").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if (!request_param.containsKey("sns_division") || request_param.get("sns_division").isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+
+			if(request_param.get("blacklist_division").equals("post"))
+				request_param.put("review_id", request_param.get("review_id"));
+			request_param.put("portal", request_param.get("portal").toUpperCase());
+			placeService.deleteBlacklistOne(request_param);
+
+		} catch (InvalidParameterException e){
+			e.printStackTrace();
+			return_dto.setCode(400);
+			return_dto.setMessage("Invalid parameter");
+			return return_dto;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
+
 }

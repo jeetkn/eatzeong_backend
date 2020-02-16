@@ -186,6 +186,29 @@
 			and delete_flag != 'Y'
 			and shutdown_flag != 'Y'
 	</select>
+
+	<!--북마크 여부 조회-->
+	<select id="selectPlaceBookmark" resultType="Int" parameterType="com.place.dto.PlaceDetailDto">
+		select
+			count(*) as count
+		from bookmark_tb
+		where 1 = 1
+		  and place_id = #{place_id}
+		  and user_id = #{user_id}
+		  and sns_division = #{sns_division}
+		  and gubun = 'place'
+	</select>
+
+	<!--리뷰 작성 여부 조회-->
+	<select id="selectPlaceAppReviewFlag" resultType="Int" parameterType="com.place.dto.PlaceDetailDto">
+		select
+			count(*) as count
+		from app_review_tb
+		where 1 = 1
+		  and place_id = #{place_id}
+		  and review_user_id = #{user_id}
+		  and sns_division = #{sns_division}
+	</select>
 	
 	<!-- 장소데이터 update -->
 	<update id="updatePlace" parameterType="com.place.dto.PlaceDetailDto">
@@ -276,14 +299,26 @@
 		from
 			(
 			select
-				*
+				*,
+				getbookmarkflag(place_id, review_id, #{user_id}, #{sns_division}) as bookmark_flag
 			from
 				portal_blog_tb
 			where
-				1 = 1
-				and del_flag != 'Y'
-				and portal = 'NAVER'
-				and place_id = #{place_id}
+				review_id not in (
+					select
+						portal.review_id
+					from
+						portal_blog_tb portal
+					join portal_blacklist_tb black on
+						(portal.author = black.author
+						or portal.review_id = black.review_id )
+					where
+						black.user_id = #{user_id}
+						and black.sns_division = #{sns_division}
+					group by portal .review_id)
+					and del_flag != 'Y'
+					and portal = 'NAVER'
+					and place_id = #{place_id}
 			<choose>
 				<when test="size > 0">
 					limit #{size}::int
@@ -359,11 +394,23 @@
 		from
 			(
 			select
-				*
+				*,
+				getbookmarkflag(place_id, review_id, #{user_id}, #{sns_division}) as bookmark_flag
 			from
 				portal_blog_tb
 			where
-				1 = 1
+				review_id not in (
+					select
+						portal.review_id
+					from
+						portal_blog_tb portal
+					join portal_blacklist_tb black on
+						(portal.author = black.author
+						or portal.review_id = black.review_id )
+					where
+						black.user_id = #{user_id}
+						and black.sns_division = #{sns_division}
+					group by portal .review_id)
 				and del_flag != 'Y'
 				and portal = 'DAUM'
 				and place_id = #{place_id}
@@ -508,19 +555,31 @@
 		from
 			(
 			select
-				*
+				*,
+				getbookmarkflag(place_id, review_id, #{user_id}, #{sns_division}) as bookmark_flag
 			from
 				portal_review_tb
 			where
-				1 = 1
+				review_id not in (
+					select
+						portal.review_id
+					from
+						portal_review_tb portal
+					join portal_blacklist_tb black on
+						(portal.author = black.author
+						or portal.review_id = black.review_id )
+					where
+						black.user_id = #{user_id}
+						and black.sns_division = #{sns_division}
+					group by portal .review_id)
 				and del_flag != 'Y'
 				and portal = 'YOUTUBE'
 				and place_id = #{place_id}
-				<choose>
-					<when test="size > 0">
-						limit #{size}::int
-					</when>
-				</choose>
+		<choose>
+			<when test="size > 0">
+				limit #{size}::int
+			</when>
+		</choose>
 			) A
 	</select>
 
@@ -546,4 +605,187 @@
 		</choose>
 		) A
 	</select>
+
+	<select id="selectEatzeongReviews" resultType="HashMap" parameterType="HashMap">
+		select
+			*,
+			row_number() over (order by review_id)
+		from
+			(
+			select
+				*,
+				getusernickname(review_user_id, sns_division) as author,
+				getuserprofile(review_user_id, sns_division) as profile_image_url,
+				getappreviewlikecount(review_id) as like_count
+			from
+				app_review_tb
+			where
+				1 = 1
+				and del_flag != 'Y'
+				and place_id = #{place_id}
+				<choose>
+					<when test="size > 0">
+						limit #{size}::int
+					</when>
+				</choose>
+			) A
+	</select>
+
+	<select id="selectEatzeongReviewAttachments" resultType="HashMap" parameterType="HashMap">
+		select *
+		from attachments_list_tb
+		where 1 = 1
+		  and attach_number = #{attach_number}
+		  and del_flag != 'Y'
+	</select>
+
+	<select id="selectBlacklistFlag" resultType="HashMap" parameterType="HashMap">
+		select
+			*
+		from
+			portal_blacklist_tb
+		where
+			1 = 1
+			and review_id = #{review_id}
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+	</select>
+
+	<select id="selectBlacklistAuthor" resultType="HashMap" parameterType="HashMap">
+		select
+			portal_division as portal,
+			author,
+			sns_division,
+			user_id,
+			add_date,
+			add_time,
+			add_user_id,
+			blacklist_division
+		from
+			portal_blacklist_tb
+		where
+			1 = 1
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+			and blacklist_division = 'author'
+		group by
+			portal_division,
+			author,
+			sns_division,
+			user_id,
+			add_date,
+			add_time,
+			add_user_id,
+			blacklist_division
+	</select>
+
+	<select id="selectBlacklistPost" resultType="HashMap" parameterType="HashMap">
+		select
+			*
+		from
+			(
+			select
+				review_id,
+				title,
+				description,
+				portal,
+				write_date,
+				url,
+				thumbnail_url
+			from
+				portal_blog_tb
+		union all
+			select
+				review_id,
+				y_title as title,
+				y_description as description,
+				portal,
+				write_date,
+				y_video_id as url,
+				y_thumbnail_url as thumbnail_url
+			from
+				portal_review_tb) as review
+		join portal_blacklist_tb blacklist on
+			review.review_id = blacklist.review_id
+		where
+			1 = 1
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+			and blacklist_division = 'post'
+	</select>
+
+	<insert id="insertBlacklist" parameterType="HashMap">
+		insert into
+			portal_blacklist_tb (
+					review_id,
+					portal_division,
+					author,
+					sns_division,
+					user_id,
+					add_date,
+					add_time,
+					add_user_id,
+					blacklist_division
+					)
+		values (
+				#{review_id},
+				#{portal},
+				#{author},
+				#{sns_division},
+				#{user_id},
+				current_date,
+				current_time,
+				#{user_id},
+				#{blacklist_division}
+				);
+	</insert>
+
+	<select id="selectBlacklistCount" resultType="Int" parameterType="HashMap">
+		select
+			count(*) as count
+		from
+			portal_blacklist_tb
+		where
+			1 = 1
+			and review_id = #{review_id}
+			and portal_division = #{portal}
+			and author = #{author}
+			and blacklist_division = #{blacklist_division}
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+	</select>
+
+	<delete id="deleteBlacklist" parameterType="HashMap">
+		delete from portal_blacklist_tb
+		where
+			1 = 1
+			<choose>
+				<when test="blacklist_division.equals('author')">
+					and blacklist_division = 'post'
+				</when>
+				<otherwise>
+					and blacklist_division = 'author'
+				</otherwise>
+			</choose>
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+			and portal_division = #{portal}
+			and author = #{author}
+	</delete>
+
+	<delete id="deleteBlacklistOne" parameterType="HashMap">
+		delete from portal_blacklist_tb
+		where
+			1 = 1
+			<choose>
+				<when test="blacklist_division.equals('post')">
+					and review_id = #{review_id}
+				</when>
+			</choose>
+			and blacklist_division = #{blacklist_division}
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+			and portal_division = #{portal}
+			and author = #{author}
+	</delete>
 </mapper>

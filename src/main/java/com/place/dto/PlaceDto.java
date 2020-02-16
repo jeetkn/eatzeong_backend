@@ -40,5 +40,6 @@ public class PlaceDto {
 	private String app_review_count;
 	private String user_id;
 	private String sns_division;
+	private String size;
 }
 

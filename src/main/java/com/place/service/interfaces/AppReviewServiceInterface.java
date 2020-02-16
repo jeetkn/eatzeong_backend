@@ -21,4 +21,6 @@ public interface AppReviewServiceInterface {
 	void deleteAppReview(AppReviewDto app_review_dto) throws Exception;
 
     List<Map<String, Object>> selectMyReviewList(AppReviewDto review_dto) throws Exception;
+
+    void insertLikeReview(AppReviewDto app_review_dto) throws Exception;
 }

@@ -48,4 +48,10 @@ public interface ReviewMapper {
 	public int insertReview(List<PortalReviewDto> review_list) throws Exception;
 
     public List<AppReviewDto> selectMyReviewList(AppReviewDto review_dto) throws Exception;
+
+    int selectLikeReview(AppReviewDto app_review_dto) throws Exception;
+
+	void insertLikeReview(AppReviewDto app_review_dto) throws Exception;
+
+	void deleteLikeReview(AppReviewDto app_review_dto) throws Exception;
 }

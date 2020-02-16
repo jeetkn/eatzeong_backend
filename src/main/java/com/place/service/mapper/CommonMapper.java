@@ -58,4 +58,6 @@ public interface CommonMapper {
     int selectMainPlacesCount(PlaceDto place_dto);
 
 	List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto);
+
+	int selectBookmarkFlag(Map<String, String> allRequestParams) throws Exception;
 }

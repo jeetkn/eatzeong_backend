@@ -1,15 +1,21 @@
 package com.place.controller;
 
 import com.google.common.collect.Maps;
+import com.place.dto.AppReviewDto;
 import com.place.dto.Dto;
 import com.place.dto.UserDto;
+import com.place.exception.ExistException;
 import com.place.service.PlaceService;
 import com.place.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import java.io.IOException;
+import java.security.InvalidParameterException;
 import java.util.*;
 
 @RestController
@@ -23,41 +29,6 @@ public class UserController {
     UserService userService;
 
     /**
-     * 일반사용자 이메일체크
-     * @param userDto
-     * @return
-     */
-    @GetMapping(value = "users/general/checkemail")
-    public Dto<Map<String, Object>> checkEmail(UserDto userDto){
-        Dto<Map<String, Object>> return_dto = new Dto<>();
-
-        try {
-            Map<String, Object> return_map = new HashMap<>();
-            userDto.setSns_division("C");
-            if(userService.getGeneralEmailCheck(userDto)){
-                return_map.put("result", true);
-                return_map.put("result_message", "사용 가능한 이메일입니다.");
-            }else{
-                return_map.put("result", false);
-                return_map.put("result_message", "이미 가입된 이메일입니다.");
-            }
-            return_dto.setDataList(return_map);
-
-        }catch (Exception e){
-            var error = Maps.newHashMap(new HashMap<String, Object>());
-            error.put("error_message", e.getMessage());
-
-            e.printStackTrace();
-            return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
-            return_dto.setDataList(error);
-            return return_dto;
-        }
-
-        return return_dto;
-    }
-
-    /**
      * 일반사용자 회원가입
      * @param userDto
      * @return
@@ -67,19 +38,35 @@ public class UserController {
         Dto<Map<String, Object>> return_dto = new Dto<>();
 
         try {
-            Map<String, Object> return_map = new HashMap<>();
+            if (userDto.getEmail() == null || userDto.getEmail().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getPassword() == null || userDto.getPassword().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getGender() == null || userDto.getGender().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getNickname() == null || userDto.getNickname().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getBirthday() == null || userDto.getBirthday().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
             userService.insertGeneralUser(userDto);
-            return_map.put("result_message", "성공하였습니다.");
-            return_dto.setDataList(return_map);
 
-        }catch (Exception e){
-            var error = Maps.newHashMap(new HashMap<String, Object>());
-            error.put("error_message", e.getMessage());
-
+        }catch (ExistException e){
+            e.printStackTrace();
+            return_dto.setCode(409);
+            return_dto.setMessage("Already exist data");
+            return return_dto;
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
-            return_dto.setDataList(error);
+            return_dto.setMessage("server error");
             return return_dto;
         }
 
@@ -116,8 +103,106 @@ public class UserController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(error);
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    /**
+     * 아이디 찾기
+     * @param userDto
+     * @return
+     */
+    @GetMapping("/users/general/findid")
+    public Dto<List<String>> findId(UserDto userDto){
+        Dto<List<String>> return_dto = new Dto<>();
+
+        try{
+            if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getBirthday() == null || userDto.getBirthday().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            return_dto.setDataList(userService.findId(userDto));
+
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    /**
+     * 계정 여부 체크
+     * @param userDto
+     * @return
+     */
+    @GetMapping("/users/general/accountcheck")
+    public Dto<Map<String,Object>> accountCheck(UserDto userDto){
+        Dto<Map<String,Object>> return_dto = new Dto<>();
+
+        try{
+            if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getEmail() == null || userDto.getEmail().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            return_dto.setDataList(userService.finePassword(userDto));
+
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    /**
+     * 일반사용자 탈퇴하기
+     * @param userDto
+     * @return
+     */
+    @PutMapping("/users/general/accountclose")
+    public Dto<Map<String, Object>> accountClose(UserDto userDto){
+        Dto<Map<String,Object>> return_dto = new Dto<>();
+
+        try{
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getPassword() == null || userDto.getPassword().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            userDto.setSns_division("C");
+            userDto.setEmail(userDto.getUser_id());
+            return_dto.setDataList(userService.accountClose(userDto));
+
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
             return return_dto;
         }
 
@@ -136,7 +221,8 @@ public class UserController {
 
         try{
             userService.updatePassword(userDto);
-            return_map.put("result", "SUCCESS");
+            return_map.put("result_flag", true);
+            return_map.put("result_message", "비밀번호 변경 성공");
             return_dto.setDataList(return_map);
 
         }catch (Exception e){
@@ -145,8 +231,38 @@ public class UserController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(error);
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    @PutMapping(value = "/users/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Dto<Map<String, Object>> updateProfileImage(@RequestPart(name = "file", required=false) FilePart file,
+                                                       UserDto userDto) throws IOException {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try{
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getSns_division() == null || userDto.getSns_division().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (file == null)
+                throw new InvalidParameterException("Invalid parameter");
+
+            return_dto.setDataList(userService.updateProfile(userDto, file));
+
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
             return return_dto;
         }
 
@@ -170,8 +286,35 @@ public class UserController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
+    @GetMapping("/users/user")
+    public Dto<Map<String, Object>> selectUserInfo(UserDto userDto){
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try{
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getSns_division() == null || userDto.getSns_division().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            return_dto.setDataList(userService.selectUserInfo(userDto));
+
+        } catch (InvalidParameterException e){
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
             return return_dto;
         }
 
@@ -191,7 +334,7 @@ public class UserController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -212,7 +355,7 @@ public class UserController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }

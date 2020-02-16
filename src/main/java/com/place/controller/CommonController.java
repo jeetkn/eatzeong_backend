@@ -112,7 +112,7 @@ public class CommonController {
 
         try {
             if (!request_param.containsKey("query") || !request_param.containsKey("portal"))
-                throw new Exception("필수 파라미터를 확인해주세요.");
+                throw new Exception("Invalid parameter");
             if (request_param.get("query") == null || request_param.get("query").isBlank())
                 throw new Exception("query 파라미터를 확인해주세요.");
             if (request_param.get("portal") == null || request_param.get("portal").isBlank())
@@ -132,7 +132,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -147,11 +147,13 @@ public class CommonController {
 
         try {
             if (!request_param.containsKey("query"))
-                throw new Exception("필수 파라미터를 확인해주세요.");
+                throw new Exception("Invalid parameter");
             if (request_param.get("query") == null || request_param.get("query").isBlank())
                 throw new Exception("query 파라미터를 확인해주세요.");
 
             place_dto.setKeyword(request_param.get("query"));
+            if(place_dto.getSize() == null || place_dto.getSize().isBlank())
+                place_dto.setSize("0");
             log.info(place_dto.toString());
             int count = common.selectMainPlacesCount(place_dto);
             if(count < 1)
@@ -165,7 +167,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -198,7 +200,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -219,7 +221,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -244,7 +246,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
@@ -277,8 +279,7 @@ public class CommonController {
 //			@RequestParam(required = false) String place_id,
 //			@RequestParam(required = false) String user_id,
 //			@RequestParam(required = false, defaultValue = "place") String gubun		// place, youtube, naver, tistory
-            @RequestParam Map<String, String> allRequestParams
-    ) {
+            @RequestParam Map<String, String> allRequestParams) {
 
         Dto<List<Map<String, Object>>> return_dto = new Dto<List<Map<String, Object>>>();
         List<Map<String, Object>> return_dataList = Lists.newArrayList();
@@ -316,7 +317,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_dataList.add(error);
             return_dto.setDataList(return_dataList);
             return return_dto;
@@ -337,8 +338,7 @@ public class CommonController {
 //			@PathVariable String place_id, 
 //			@RequestParam(required = false) String user_id,
 //			@RequestParam(defaultValue = "place") String gubun		// place, youtube, naver, tistory, app
-            @RequestParam Map<String, String> allRequestParams
-    ) {
+            @RequestParam Map<String, String> allRequestParams) {
         Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
         Map<String, Object> return_map = Maps.newHashMap();
 
@@ -400,7 +400,7 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_map.put("result_message", e.getMessage());
             return_dto.setDataList(return_map);
             return return_dto;
@@ -417,8 +417,7 @@ public class CommonController {
      */
     @DeleteMapping(value = "/bookmarks")
     public Dto<Map<String, Object>> deleteBookmark(
-            @RequestParam Map<String, String> allRequestParams
-    ) {
+            @RequestParam Map<String, String> allRequestParams) {
         Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
         Map<String, Object> return_map = Maps.newHashMap();
 
@@ -480,12 +479,43 @@ public class CommonController {
 
             e.printStackTrace();
             return_dto.setCode(500);
-            return_dto.setMessage("서버 오류");
+            return_dto.setMessage("server error");
             return_map.put("result_message", e.getMessage());
             return_dto.setDataList(return_map);
             return return_dto;
         }
 
+
+        return return_dto;
+    }
+
+    @GetMapping("/bookmarkflag")
+    public Dto<Map<String, Object>> selectBookmarkFlag(@RequestParam Map<String, String> allRequestParams){
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+        Map<String, Object> return_map = Maps.newHashMap();
+
+        try {
+            if(!allRequestParams.containsKey("review_id") || allRequestParams.get("review_id").isBlank())
+                throw new Exception("review_id 파라미터는 필수입니다. 해당 파라미터를 확인해주세요.");
+            if(!allRequestParams.containsKey("user_id") || allRequestParams.get("user_id").isBlank())
+                throw new Exception("user_id 파라미터는 필수입니다. 해당 파라미터를 확인해주세요.");
+            if(!allRequestParams.containsKey("sns_division") || allRequestParams.get("sns_division").isBlank())
+                throw new Exception("sns_division 파라미터는 필수입니다. 해당 파라미터를 확인해주세요.");
+
+            return_map = common.selectBookmarkFlag(allRequestParams);
+            return_dto.setDataList(return_map);
+
+        } catch (Exception e) {
+            var error = Maps.newHashMap(new HashMap<String, Object>());
+            error.put("error_message", e.getMessage());
+
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return_map.put("result_message", e.getMessage());
+            return_dto.setDataList(return_map);
+            return return_dto;
+        }
 
         return return_dto;
     }

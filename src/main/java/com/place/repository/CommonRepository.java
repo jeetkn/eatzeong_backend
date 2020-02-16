@@ -98,4 +98,8 @@ public class CommonRepository {
 	public List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto) {
 		return mapper.selectMainPlaces(place_dto);
 	}
+
+    public int selectBookmarkFlag(Map<String, String> allRequestParams) throws Exception{
+		return mapper.selectBookmarkFlag(allRequestParams);
+    }
 }

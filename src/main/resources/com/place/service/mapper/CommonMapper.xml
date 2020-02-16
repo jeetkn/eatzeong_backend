@@ -115,7 +115,11 @@
 			and portal = #{portal}
 			and keyword = #{query}
 		order by random()
-		limit 5
+		<choose>
+			<when test="size > 0">
+				limit #{size}::int
+			</when>
+		</choose>
 	</select>
 
 	<select id="selectMainCount" resultType="Int" parameterType="java.util.HashMap">
@@ -196,7 +200,8 @@
 				review.review_id,
 				review.review_contents,
 				review.review_user_id,
-				review.like_count,
+				getappreviewlikecount(review.review_id) as like_count,
+			    getappreviewlikeflag(review.review_id, #{user_id}, #{sns_division}) as like_flag,
 				review.rating_point,
 				review.add_date,
 				review.add_time
@@ -315,35 +320,29 @@
 	</select>
 	
 	<!-- 북마크 매장 삭제 -->
-	<update id="updateBookmarkPlaces" parameterType="HashMap">
-		update
-			bookmark_tb
-		set
-			del_flag = 'Y'
+	<delete id="updateBookmarkPlaces" parameterType="HashMap">
+		delete
+			from bookmark_tb
 		where
 			1 = 1
 			and place_id = #{place_id}
-			and del_flag = 'N'
 			and gubun = #{gubun}
 			and user_id = #{user_id}
 			and sns_division = #{sns_division}
-	</update>
+	</delete>
 	
 	<!-- 북마크 리뷰 삭제 -->
-	<update id="updateBookmarkReviewBlog" parameterType="HashMap">
-		update
-			bookmark_tb
-		set
-			del_flag = 'Y'
+	<delete id="updateBookmarkReviewBlog" parameterType="HashMap">
+		delete
+			from bookmark_tb
 		where
 			1 = 1
 			and place_id = #{place_id}
-			and del_flag = 'N'
 			and gubun = #{gubun}
 			and user_id = #{user_id}
 			and id = #{id}
 			and sns_division = #{sns_division}
-	</update>
+	</delete>
 
 	<select id="selectMainPlacesCount" resultType="Int" parameterType="com.place.dto.PlaceDto">
 		select
@@ -365,9 +364,11 @@
 			category_table.category_name,
 			latitude,
 			longitude,
+			place_address ,
+			road_place_address ,
 			(select trunc(avg(g_rating),1) from portal_review_tb where portal = 'G' and place_id = place.place_id and del_flag != 'Y') as google_rating,
 			avgreviewrating(place_id) as app_review_rating,
-			(select	thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'GN' order by random() limit 1) as blog_thumbnail,
+			(select	thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'DAUM' limit 1) as blog_thumbnail,
 			getthumbnail(place.place_id ) as app_thumbnail
 		from
 			places_tb place
@@ -378,7 +379,24 @@
 			1 = 1
 			and keyword = #{keyword}
 			and delete_flag != 'Y'
-		order by random()
-		limit 5
+		<choose>
+			<when test="size > 0">
+				order by random()
+				limit #{size}::int
+			</when>
+		</choose>
+	</select>
+
+	<select id="selectBookmarkFlag" resultType="Int" parameterType="HashMap">
+		select
+			count(*) as count
+		from
+			bookmark_tb
+		where
+			1 = 1
+			and id = #{review_id}
+			and user_id = #{user_id}
+			and sns_division = #{sns_division}
+			and del_flag != 'Y'
 	</select>
 </mapper>

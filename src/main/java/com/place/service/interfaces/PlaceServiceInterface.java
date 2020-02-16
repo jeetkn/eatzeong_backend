@@ -5,8 +5,6 @@ import java.util.Map;
 
 import com.place.dto.PlaceDetailDto;
 import com.place.dto.PlaceDto;
-import com.place.dto.PortalBlogDto;
-import com.place.dto.PortalReviewDto;
 
 public interface PlaceServiceInterface {
 
@@ -56,4 +54,12 @@ public interface PlaceServiceInterface {
     List<Map<String, Object>> selectYoutubeReview(Map<String, String> request_param) throws Exception;
 
     List<Map<String, Object>> selectGoogleReview(Map<String, String> request_param) throws Exception;
+
+    void insertBlacklist(Map<String, String> request_param) throws Exception;
+
+    void deleteBlacklistOne(Map<String, String> request_param) throws Exception;
+
+    Map<String, Object> selectBlacklistFlag(Map<String, String> request_param) throws Exception;
+
+    Map<String, Object> selectBlacklist(Map<String, String> request_param) throws Exception;
 }

@@ -93,11 +93,11 @@ public class CommonService implements CommonServiceInterface {
             log.debug(query_list.toString());
 
             if (query_list.size() < 1) {
-                Map<String, Object> return_map = Maps.newHashMap();
-                return_map.put("result_count", 0);
-                return_map.put("result_message", "검색결과 없음");
-                result_list.add(return_map);
-                return result_list;
+//                Map<String, Object> return_map = Maps.newHashMap();
+//                return_map.put("result_count", 0);
+//                return_map.put("result_message", "검색결과 없음");
+//                result_list.add(null);
+                return null;
             } else {
                 result_list = parseBookmarks(query_list, allRequestParams.get("gubun"));
                 return result_list;
@@ -198,6 +198,7 @@ public class CommonService implements CommonServiceInterface {
             for (Map<String, Object> map : query_list) {
                 Map<String, Object> return_map = Maps.newHashMap();
 
+//                return_map.put("result_count", query_list.size());
                 return_map.put("place_id", map.get("place_id"));
                 return_map.put("gubun", map.get("gubun"));
                 return_map.put("place_name", map.get("place_name"));
@@ -205,7 +206,7 @@ public class CommonService implements CommonServiceInterface {
                 return_map.put("write_date", map.get("write_date").toString());
                 return_map.put("title", map.get("y_title"));
                 return_map.put("description", map.get("y_description"));
-                return_map.put("y_video_id", map.get("y_video_id"));
+                return_map.put("url", map.get("y_video_id"));
                 return_map.put("thumbnail_url", map.get("y_thumbnail_url"));
 
                 result_list.add(return_map);
@@ -214,6 +215,7 @@ public class CommonService implements CommonServiceInterface {
             for (Map<String, Object> map : query_list) {
                 Map<String, Object> return_map = Maps.newHashMap();
 
+//                return_map.put("result_count", query_list.size());
                 return_map.put("place_id", map.get("place_id"));
                 return_map.put("gubun", map.get("gubun"));
                 return_map.put("place_name", map.get("place_name"));
@@ -231,6 +233,7 @@ public class CommonService implements CommonServiceInterface {
             for (Map<String, Object> map : query_list) {
                 Map<String, Object> return_map = Maps.newHashMap();
 
+//                return_map.put("result_count", query_list.size());
                 return_map.put("place_id", map.get("place_id"));
                 return_map.put("gubun", map.get("gubun"));
                 return_map.put("place_name", map.get("place_name"));
@@ -239,6 +242,7 @@ public class CommonService implements CommonServiceInterface {
                 return_map.put("write_time", map.get("add_time"));
                 return_map.put("review_contents", map.get("review_contents"));
                 return_map.put("like_count", map.get("like_count"));
+                return_map.put("like_flag", map.get("like_flag"));
                 return_map.put("rating_point", String.format("%d", map.get("rating_point")));
                 return_map.put("write_user_id", map.get("review_user_id"));
 
@@ -248,6 +252,7 @@ public class CommonService implements CommonServiceInterface {
             for (Map<String, Object> map : query_list) {
                 Map<String, Object> return_map = Maps.newHashMap();
 
+//                return_map.put("result_count", query_list.size());
                 return_map.put("place_id", map.get("place_id"));
                 return_map.put("gubun", map.get("gubun"));
                 return_map.put("place_name", map.get("place_name"));
@@ -333,6 +338,7 @@ public class CommonService implements CommonServiceInterface {
             if (Integer.parseInt(request.get("totalResults")) > 0) {
                 List<Map<String, Object>> items = document.read("$.NAVER.items[*]");
                 items.stream()
+                        .filter(item -> item.get("snippet").toString().indexOf("일") < 15)
                         .forEach(item -> {
                             Map<String, List<Map<String, String>>> map = oMapper.convertValue(item.get("pagemap"), Map.class);
                             MainDto dto = new MainDto();
@@ -440,6 +446,7 @@ public class CommonService implements CommonServiceInterface {
         List<Map<String, String>> return_data = new ArrayList<>();
         List<MainDto> data_dto = new ArrayList<>();
 
+        request_param.put("size", request_param.getOrDefault("size", ""));
         data_dto = common.selectMain(request_param);
         long data_count = data_dto.stream()
                 .filter(dto -> !dto.getTitle().isBlank())
@@ -449,9 +456,12 @@ public class CommonService implements CommonServiceInterface {
                     map.put("author", dto.getAuthor());
                     map.put("title", dto.getTitle());
                     map.put("description", dto.getDescription());
-                    map.put("thumbnail", dto.getThumbnail());
-                    map.put("link", dto.getLink());
-                    map.put("published_date", dto.getPublished_date());
+                    if(dto.getThumbnail() == null || dto.getThumbnail().isBlank())
+                        map.put("thumbnail_url", null);
+                    else
+                        map.put("thumbnail_url", dto.getThumbnail());
+                    map.put("url", dto.getLink());
+                    map.put("write_date", dto.getPublished_date());
                     map.put("start_index", dto.getStart_index());
                     return_data.add(map);
                 })
@@ -486,10 +496,9 @@ public class CommonService implements CommonServiceInterface {
 
     @Override
     public List<Map<String, Object>> selectMainPlaces(PlaceDto place_dto) throws Exception{
-        List<Map<String, Object>> result_list = new ArrayList<>();
         List<Map<String, Object>> return_list = new ArrayList<>();
 
-        result_list = common.selectMainPlaces(place_dto);
+        List<Map<String, Object>> result_list = common.selectMainPlaces(place_dto);
         result_list.forEach(result_map -> {
             Map<String, Object> temp_map = new LinkedHashMap<>();
             temp_map.put("place_id", result_map.get("place_id"));
@@ -500,13 +509,36 @@ public class CommonService implements CommonServiceInterface {
             temp_map.put("longitude", result_map.get("longitude"));
             temp_map.put("google_rating", result_map.get("google_rating"));
             temp_map.put("appreview_rating", result_map.get("appreview_rating"));
-            temp_map.put("blog_thumbnail", result_map.get("blog_thumbnail"));
+            temp_map.put("place_address", result_map.get("place_address"));
+            temp_map.put("road_place_address", result_map.get("road_place_address"));
+            if(result_map.get("blog_thumbnail") == null || result_map.get("blog_thumbnail").toString().isBlank())
+                temp_map.put("blog_thumbnail", null);
+            else
+                temp_map.put("blog_thumbnail", result_map.get("blog_thumbnail"));
             temp_map.put("app_thumbnail", result_map.get("app_thumbnail"));
 
             return_list.add(temp_map);
         });
 
         return return_list;
+    }
+
+    @Override
+    public Map<String, Object> selectBookmarkFlag(Map<String, String> allRequestParams) throws Exception {
+        Map<String, Object> return_map = new LinkedHashMap<>();
+
+        int count = common.selectBookmarkFlag(allRequestParams);
+        if(count > 0) {
+            return_map.put("result_flag", true);
+            return_map.put("result_message", "북마크가 존재합니다.");
+        }
+        else {
+            return_map.put("result_flag", false);
+            return_map.put("result_message", "북마크가 없습니다.");
+        }
+
+
+        return return_map;
     }
 }
 

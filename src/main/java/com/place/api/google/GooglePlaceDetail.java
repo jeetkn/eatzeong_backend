@@ -27,7 +27,6 @@ public class GooglePlaceDetail extends CommonApi{
 
 	@Override
 	public void checkFields(Map<String, String> fields) throws Exception {
-		// TODO Auto-generated method stub
 		if(!fields.containsKey("place_id"))
 			throw new Exception("place_id가 없습니다.");
 	}

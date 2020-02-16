@@ -68,7 +68,7 @@ public class AppReviewController {
 			
 			e.printStackTrace();
 			return_dto_list.setCode(500);
-			return_dto_list.setMessage("서버 오류");
+			return_dto_list.setMessage("server error");
 			return_dto_list.setDataList(Lists.newArrayList(error));
 			return return_dto_list;
 		}
@@ -90,7 +90,7 @@ public class AppReviewController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(Lists.newArrayList(error));
 			return return_dto;
 		}
@@ -114,12 +114,6 @@ public class AppReviewController {
 			app_review_dto.setPlace_id(place_id);
 			app_review_dto.setReview_contents(URLDecoder.decode(app_review_dto.getReview_contents(), "UTF-8"));
 
-			log.info("place_id : {}", place_id);
-			log.info("app_review_dto : {}", app_review_dto.toString());
-			log.info("image stored directory : {}", System.getProperty("user.dir")+ image_directory);
-
-
-
 			if(app_review_dto.getReview_user_id() == null || app_review_dto.getReview_user_id().isBlank())
 				throw new Exception("review_user_id 파라미터를 확인해주세요.");
 			if(app_review_dto.getReview_contents() == null || app_review_dto.getReview_contents().isBlank())
@@ -136,7 +130,7 @@ public class AppReviewController {
 
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
@@ -177,7 +171,7 @@ public class AppReviewController {
 			
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
@@ -189,8 +183,9 @@ public class AppReviewController {
 	 * 리뷰 삭제
 	 */
 	@DeleteMapping(value = "/places/{place_id}/reviews/{review_id}")
-	public Dto<Map<String, Object>> deleteReview(
-			AppReviewDto app_review_dto){
+	public Dto<Map<String, Object>> deleteReview(@PathVariable String place_id,
+												 @PathVariable String review_id,
+												 AppReviewDto app_review_dto){
 		
 		Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
 		Map<String, Object> return_map = Maps.newHashMap();
@@ -198,7 +193,9 @@ public class AppReviewController {
 		try {
 			if(app_review_dto.getReview_user_id() == null || app_review_dto.getReview_user_id().isBlank())
 				throw new Exception("review_user_id 파라미터를 확인해주세요.");
-			
+
+			app_review_dto.setReview_id(review_id);
+			app_review_dto.setPlace_id(place_id);
 			appReview.deleteAppReview(app_review_dto);
 			
 			return_map.put("result_message", "리뷰 삭제 성공");
@@ -210,7 +207,7 @@ public class AppReviewController {
 			
 			e.printStackTrace();
 			return_dto.setCode(500);
-			return_dto.setMessage("서버 오류");
+			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
@@ -218,4 +215,63 @@ public class AppReviewController {
 		return return_dto;
 	}
 
+	@PostMapping("/reviews/{review_id}")
+	public Dto<Map<String, Object>> insertLikeReview(@PathVariable String review_id,
+													 AppReviewDto app_review_dto){
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+		Map<String, Object> return_map = new HashMap<>();
+
+		try {
+			if(app_review_dto.getUser_id() == null || "".equals(app_review_dto.getUser_id()))
+				throw new Exception("user_id 파라미터는 필수입니다. 확인해주세요.");
+			if(app_review_dto.getSns_division() == null || "".equals(app_review_dto.getSns_division()))
+				throw new Exception("sns_division 파라미터는 필수입니다. 확인해주세요.");
+
+			app_review_dto.setReview_id(review_id);
+			appReview.insertLikeReview(app_review_dto);
+			return_map.put("result_message", "성공하였습니다.");
+			return_dto.setDataList(return_map);
+		}catch (Exception e){
+			var error = Maps.newHashMap(new HashMap<String, Object>());
+			error.put("error_message", e.getMessage());
+
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return_dto.setDataList(error);
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
+	@DeleteMapping("/reviews/{review_id}")
+	public Dto<Map<String, Object>> deleteLikeReview(@PathVariable String review_id,
+													 AppReviewDto app_review_dto){
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+		Map<String, Object> return_map = new HashMap<>();
+
+		try {
+			if(app_review_dto.getUser_id() == null || "".equals(app_review_dto.getUser_id()))
+				throw new Exception("user_id 파라미터는 필수입니다. 확인해주세요.");
+			if(app_review_dto.getSns_division() == null || "".equals(app_review_dto.getSns_division()))
+				throw new Exception("sns_division 파라미터는 필수입니다. 확인해주세요.");
+
+			app_review_dto.setReview_id(review_id);
+			appReview.deleteLikeReview(app_review_dto);
+			return_map.put("result_message", "성공하였습니다.");
+			return_dto.setDataList(return_map);
+		}catch (Exception e){
+			var error = Maps.newHashMap(new HashMap<String, Object>());
+			error.put("error_message", e.getMessage());
+
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return_dto.setDataList(error);
+			return return_dto;
+		}
+
+		return return_dto;
+	}
 }

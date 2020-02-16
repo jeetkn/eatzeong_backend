@@ -53,4 +53,32 @@ public class UserRepository {
     public List<Map<String, Object>> selectFaqs() throws Exception{
         return mapper.selectFaqs();
     }
+
+    public int selectGeneralUser(UserDto userDto) throws Exception{
+        return mapper.selectGeneralUser(userDto);
+    }
+
+    public List<String> findId(UserDto userDto) throws Exception{
+        return mapper.findId(userDto);
+    }
+
+    public int findPassword(UserDto userDto) throws Exception{
+        return mapper.findPassword(userDto);
+    }
+
+    public void accountClose(UserDto userDto) throws Exception{
+        mapper.accountClose(userDto);
+    }
+
+    public void updateProfileImage(Map<String, String> attachment_map) throws Exception{
+        mapper.updateProfileImage(attachment_map);
+    }
+
+    public UserDto selectUser(UserDto userDto) throws Exception{
+        return mapper.selectUser(userDto);
+    }
+
+    public UserDto selectUserInfo(UserDto userDto) throws Exception{
+        return mapper.selectUserInfo(userDto);
+    }
 }

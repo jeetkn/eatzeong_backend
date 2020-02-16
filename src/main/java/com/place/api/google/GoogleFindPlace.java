@@ -28,7 +28,6 @@ public class GoogleFindPlace extends CommonApi{
 
 	@Override
 	public void checkFields(Map<String, String> fields) throws Exception {
-		// TODO Auto-generated method stub
 		if(!fields.containsKey("input"))
 			throw new Exception("input는 필수입니다. 필드를 확인해주세요.");
 		if(!fields.containsKey("inputtype"))

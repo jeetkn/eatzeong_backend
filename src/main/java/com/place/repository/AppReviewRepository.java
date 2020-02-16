@@ -80,4 +80,16 @@ public class AppReviewRepository {
     public List<AppReviewDto> selectMyReviewList(AppReviewDto review_dto) throws Exception{
 		return mapper.selectMyReviewList(review_dto);
     }
+
+    public int selectLikeReview(AppReviewDto app_review_dto) throws Exception{
+		return mapper.selectLikeReview(app_review_dto);
+    }
+
+	public void insertLikeReview(AppReviewDto app_review_dto) throws Exception{
+		mapper.insertLikeReview(app_review_dto);
+	}
+
+	public void deleteLikeReview(AppReviewDto app_review_dto) throws Exception{
+		mapper.deleteLikeReview(app_review_dto);
+	}
 }

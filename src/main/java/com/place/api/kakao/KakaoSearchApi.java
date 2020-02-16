@@ -21,7 +21,6 @@ public class KakaoSearchApi extends CommonApi {
 	
 	@Override
 	public void checkFields(Map<String, String> fields) throws Exception {
-		// TODO Auto-generated method stub
 		if(!true)
 			throw new Exception("?가 없습니다.");
 	}
