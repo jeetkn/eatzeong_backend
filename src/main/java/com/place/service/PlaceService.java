@@ -213,7 +213,8 @@ public class PlaceService implements PlaceServiceInterface {
 			return_map.put("business_day", null);
 		return_map.put("road_address", detail_dto.getRoad_place_address());
 		return_map.put("address", detail_dto.getPlace_address());
-		return_map.put("rating", detail_dto.getRating());
+		return_map.put("google_rating", detail_dto.getGoogle_rating());
+		return_map.put("app_rating", detail_dto.getApp_rating());
 		return_map.put("category", detail_dto.getCategory_name());
 		return_map.put("bookmark_flag", (bookmark_flag > 0) ? true : false);
 		return_map.put("appreview_flag", (appreview_flag > 0) ? true : false);
@@ -276,7 +277,7 @@ public class PlaceService implements PlaceServiceInterface {
 		List<PortalBlogDto> naver_dto = Lists.newArrayList();
 		List<PortalBlogDto> daum_dto = Lists.newArrayList();
 
-		
+
 
 		try {
 			List<PortalBlogDto> blog_list = blog_repo.selectBlog(place_dto); // 블로그 전체 조회
@@ -313,7 +314,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * <strong>유튜브 리뷰 삽입</strong>
-	 * 
+	 *
 	 * @param place_dto
 	 * @return
 	 * @throws Exception
@@ -344,14 +345,14 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * <strong>구글 리뷰 삽입</strong>
-	 * 
+	 *
 	 * @param place_dto
 	 * @return
 	 */
 /*	private List<PortalReviewDto> insertGoogleReview(PlaceDetailDto place_dto) throws Exception {
 		List<PortalReviewDto> review_list = Lists.newArrayList();
 		List<PortalReviewDto> resultData = Lists.newArrayList();
-		
+
 		PortalReviewDto review_dto = new PortalReviewDto();
 		Map<String, String> fields = new HashMap<String, String>();
 		GooglePlaceDetail place_detail = new GooglePlaceDetail();
@@ -378,7 +379,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * <strong>네이버 블로그 삽입</strong>
-	 * 
+	 *
 	 * @param place_dto
 	 * @return
 	 */
@@ -413,7 +414,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * <strong>다음 블로그 삽입</strong>
-	 * 
+	 *
 	 * @param place_dto
 	 * @return
 	 */
@@ -424,7 +425,7 @@ public class PlaceService implements PlaceServiceInterface {
 		PortalBlogDto blog_dto = new PortalBlogDto();
 
 		try {
-			
+
 			List<PortalBlogDto> blog_list = blog_repo.selectBlog(place_dto);
 
 			String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
@@ -432,7 +433,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 			fields.put("q", place_dto.getPlace_name());
 			fields.put("sort", "date:r:" + last_year_date + ":" + today); // 최근 1년
-			
+
 
 			json = custom_search.callApi(custom_search.CreateURL(fields), "DAUM");
 			blog_list = parseDaum(JsonPath.parse(json), place_dto);
@@ -450,7 +451,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 유튜브 리뷰 데이터 dto setting
-	 * 
+	 *
 	 * @param document
 	 * @param place_dto
 	 * @return
@@ -494,7 +495,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 구글 리뷰 데이터 dto setting
-	 * 
+	 *
 	 * @param document
 	 * @param place_dto
 	 * @return
@@ -524,7 +525,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 네이버 블로그 dto setting
-	 * 
+	 *
 	 * @param document
 	 * @param place_dto
 	 * @return
@@ -572,7 +573,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 다음 블로그 dto setting
-	 * 
+	 *
 	 * @param document
 	 * @param place_dto
 	 * @return
@@ -607,7 +608,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 장소 정보 Insert
-	 * 
+	 *
 	 * @param json_str
 	 * @param keyword
 	 */
@@ -667,7 +668,7 @@ public class PlaceService implements PlaceServiceInterface {
 
 	/**
 	 * 영업시간 데이터 파싱
-	 * 
+	 *
 	 * @param opening_hours_list
 	 * @return
 	 */
@@ -1143,7 +1144,8 @@ public class PlaceService implements PlaceServiceInterface {
 			String status = JsonPath.parse(google_review_string).read("$.status");
 
 			if(!"INVALID_REQUEST".equals(status)) {
-				List<Map<String, String>> google_review_list = JsonPath.parse(google_review_string).read("$.result.reviews");
+				List<Map<String, String>> google_review_list = JsonPath.parse(google_review_string).read("$[?(@.result.reviews)].result.reviews[*]");
+//				List<Map<String, String>> google_review_list = JsonPath.parse(google_review_string).read("$.result.reviews");
 				google_review_list = google_review_list.stream()
 						.peek(map -> {
 //						map.replace("text", map.get("text").replaceAll("\n", ""));
@@ -1189,7 +1191,7 @@ public class PlaceService implements PlaceServiceInterface {
 			if(result_map.get("attach_number") != null)
 				temp_map.put("image_url", selectEatzeongReviewAttachments(result_map));
 			else
-				temp_map.put("image_url", null);
+				temp_map.put("image_url", new ArrayList<>());
 
 			return_list.add(temp_map);
 		}

@@ -4,13 +4,12 @@ import java.io.File;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.http.codec.multipart.FilePart;
@@ -39,14 +38,13 @@ public class AppReviewService implements AppReviewServiceInterface {
 
 	@Inject
 	AppReviewRepository app_review;
-	
-	
+
+
 	@Override
 	public Map<String, Object> selectAppReview(AppReviewDto app_review_dto) throws Exception {
 		List<AppReviewDto> review_dto = Lists.newArrayList();
 		Map<String, Object> return_map = new LinkedHashMap<>();
-		List<String> image_url_list = Lists.newArrayList();
-		
+
 		System.out.println(app_review_dto);
 		review_dto = app_review.selectAppReview(app_review_dto);
 
@@ -62,17 +60,17 @@ public class AppReviewService implements AppReviewServiceInterface {
 				return_map.put("like_flag", true);
 			else
 				return_map.put("like_flag", false);
-			return_map.putIfAbsent("reivew_contents", review_dto.get(0).getReview_contents());
+			return_map.putIfAbsent("review_contents", review_dto.get(0).getReview_contents());
 			return_map.putIfAbsent("rating_point", review_dto.get(0).getRating_point());
 			return_map.putIfAbsent("image_url", fileImageUrl(review_dto).get(review_dto.get(0).getReview_id()));
 			return_map.putIfAbsent("write_date", review_dto.get(0).getAdd_date());
 		}else {
 			throw new Exception("리뷰 조회 결과가 없습니다.");
 		}
-		
+
 		return return_map;
 	}
-	
+
 	@Override
 	public List<Map<String, Object>> selectAppReviewList(AppReviewDto review_dto) throws Exception {
 		List<Map<String, Object>> return_dto_list = Lists.newArrayList();
@@ -80,9 +78,9 @@ public class AppReviewService implements AppReviewServiceInterface {
 
 		try {
 			List<AppReviewDto> review_dto_list = Lists.newArrayList();
-			
+
 			review_dto_list = app_review.selectAppReviewList(review_dto);
-			
+
 			Multimap<String, String> review_multi_map= MultimapBuilder.hashKeys().arrayListValues().build();
 			for(AppReviewDto dto : review_dto_list) {
 				if(dto.getAttach_name() != null) {
@@ -97,7 +95,7 @@ public class AppReviewService implements AppReviewServiceInterface {
 					}
 				}
 			}
-			
+
 			for(AppReviewDto dto:dto_list) {
 				Map<String, Object> dto_map = new LinkedHashMap<String, Object>();
 
@@ -118,39 +116,39 @@ public class AppReviewService implements AppReviewServiceInterface {
 
 				return_dto_list.add(dto_map);
 			}
-			
+
 			if(return_dto_list.isEmpty()) {
 				Map<String, Object> result_message = Maps.newHashMap();
 				result_message.put("result_count", 0);
 				result_message.put("result_message", "결과 없음");
 				return_dto_list.add(result_message);
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception(e.getMessage());
 		}
-		
+
 		return return_dto_list;
 	}
-	
+
 
 	/**
 	 *	리뷰 삽입
 	 */
 	@Override
 	public void insertAppReview(AppReviewDto app_review_dto, ArrayList<FilePart> files) throws Exception {
-		
+
 			if(files != null) {
 				if(files.size() > 0)
 					app_review_dto.setFile_flag(true);
 			}
-				
+
 			int count = app_review.selectAppReviewCount(app_review_dto);
 			if(count < 1) {
 				app_review.insertAppReview(app_review_dto);
 				app_review_dto = app_review.selectAppReview(app_review_dto).get(0);
-				
+
 				if(files.size() > 0)
 					fileUpload(app_review_dto, files);
 			}else {
@@ -162,53 +160,53 @@ public class AppReviewService implements AppReviewServiceInterface {
 	 *	리뷰 수정
 	 */
 	@Override
-	public void reviewUpdate(AppReviewDto app_review_dto, ArrayList<FilePart> files) throws Exception{
+	public void reviewUpdate(AppReviewDto app_review_dto, ArrayList<FilePart> files, ArrayList<String> image_url_list) throws Exception{
 		int cnt = app_review.selectAppReviewCount(app_review_dto);
 		if(cnt < 1) {
 			throw new Exception("리뷰가 존재하지 않습니다.");
 		}else if(cnt > 1){
 			throw new Exception("리뷰가 여러개 존재합니다.");
 		}else {
-			if(files!=null) {
-				if(files.size() > 0)
+			if(files != null || image_url_list != null) {
+				if(files.size() > 0 || image_url_list.size() > 0)
 					app_review_dto.setFile_flag(true);
 			}
 			app_review.updateAppReview(app_review_dto);
 			app_review_dto = app_review.selectAppReview(app_review_dto).get(0);
-			if(files!=null) {
-				if(files.size() > 0)
-					fileUpload(app_review_dto, files);
+			if(files != null || image_url_list != null) {
+				if(files.size() > 0 || image_url_list.size() > 0)
+					fileUpload(app_review_dto, files, image_url_list);
 			}
 		}
 
 	}
-	
-	
+
+
 	@Override
 	public void deleteAppReview(AppReviewDto app_review_dto) throws Exception{
 		try {
 			int cnt = app_review.selectAppReviewCount(app_review_dto);
-			if(cnt < 1) 
+			if(cnt < 1)
 				throw new Exception("리뷰가 존재하지 않습니다.");
 			else
 				app_review.deleteAppReview(app_review_dto);
-			
+
 		} catch (Exception e) {
 			throw new Exception(e.getMessage());
 		}
 	}
 
 	/**
-	 * 
-	 * 
+	 *
+	 *
 	 * @param app_review_dto
 	 * @param files
 	 * @throws Exception
 	 */
 	private void fileUpload(AppReviewDto app_review_dto, ArrayList<FilePart> files) throws Exception{
 		List<Map<String, String>> attachment_list = Lists.newArrayList();
-		
-		if(files!=null) {
+
+		if(files != null) {
 			int index = 0;
 			for(FilePart uploadedFile : files){
 				Map<String, String> attachment_map = Maps.newHashMap();
@@ -239,17 +237,71 @@ public class AppReviewService implements AppReviewServiceInterface {
 			}
 		}
 	}
-	
-	
+
+	private void fileUpload(AppReviewDto app_review_dto, ArrayList<FilePart> files, ArrayList<String> image_url_list) throws Exception{
+		List<Map<String, String>> attachment_list = Lists.newArrayList();
+		List<String> image_list = new ArrayList<>();
+
+		int index = 0;
+		if(files.size() > 0) {
+			for(FilePart uploadedFile : files){
+				Map<String, String> attachment_map = Maps.newHashMap();
+				String today = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+				Random rand = new Random(System.currentTimeMillis());
+
+				String file_name = today + "_" + Math.abs(rand.nextInt(999999)+100000) + "." + FilenameUtils.getExtension(uploadedFile.filename());
+
+				log.info(uploadedFile.filename());
+				log.info("file : {}", System.getProperty("user.dir")+ IMAGE_DIRECTORY + "/" + file_name);
+				File file = new File(System.getProperty("user.dir")+ IMAGE_DIRECTORY + "/" + file_name);
+				uploadedFile.transferTo(file);
+
+				attachment_map.put("attach_number", app_review_dto.getAttach_number());
+				attachment_map.put("attach_name", file_name);
+				attachment_map.put("attach_seq", String.valueOf(index++));
+				attachment_map.put("attach_route", file.getName());
+				attachment_map.put("attach_extension", FilenameUtils.getExtension(uploadedFile.filename()));
+				attachment_map.put("attach_size", "0");
+				attachment_map.put("review_user_id", app_review_dto.getReview_user_id());
+
+				attachment_list.add(attachment_map);
+			}
+		}
+
+		if(image_url_list.size() > 0) {
+			for (String image_url : image_url_list) {
+				Map<String, String> attachment_map = new HashMap<>();
+
+				image_url = image_url.replace(HOST_URL + "/review/", "");
+				image_list.add(image_url);
+
+				attachment_map.put("attach_number", app_review_dto.getAttach_number());
+				attachment_map.put("attach_name", image_url);
+				attachment_map.put("attach_seq", String.valueOf(index++));
+				attachment_map.put("attach_route", image_url);
+				attachment_map.put("attach_extension", image_url.split("\\.")[1]);
+				attachment_map.put("attach_size", "0");
+				attachment_map.put("review_user_id", app_review_dto.getReview_user_id());
+
+				attachment_list.add(attachment_map);
+			}
+		}
+		log.info(attachment_list.toString());
+		if(attachment_list.size() > 0) {
+			app_review.insertAppReviewAttachment(attachment_list);
+		}
+	}
+
+
 	/**
 	 * 파일 이미지 URL 만드는 함수
-	 * 
+	 *
 	 * @return List<String>
 	 */
 	private Multimap<String, String> fileImageUrl(List<AppReviewDto> review_dto_list) {
 		List<AppReviewDto> dto_list = Lists.newArrayList();
 		Multimap<String, String> review_multi_map= MultimapBuilder.hashKeys().arrayListValues().build();
-		
+
 		if(!(review_dto_list.get(0).getAttach_number() == null)) {
 			for(AppReviewDto dto : review_dto_list) {
 				if(dto.getAttach_name() != null) {
@@ -264,7 +316,7 @@ public class AppReviewService implements AppReviewServiceInterface {
 					}
 				}
 			}
-			
+
 			return review_multi_map;
 		}else {
 			return review_multi_map;
@@ -309,5 +361,24 @@ public class AppReviewService implements AppReviewServiceInterface {
 
 	public void deleteLikeReview(AppReviewDto app_review_dto) throws Exception{
 		app_review.deleteLikeReview(app_review_dto);
+	}
+
+	@Override
+	public Map<String, Object> selectMyReviewListMore(AppReviewDto review_dto) throws Exception{
+		Map<String, Object> return_map = new LinkedHashMap<>();
+		List<Map<String, Object>> myReviewList = new ArrayList<>();
+		List<Map<String, Object>> otherReviewList = new ArrayList<>();
+
+		review_dto.setMethod("selectMyReviewListMore");
+		myReviewList.add(selectAppReview(review_dto));
+		review_dto.setMethod("");
+		otherReviewList = selectAppReviewList(review_dto).stream()
+				.filter(map -> !map.get("review_id").equals(myReviewList.get(0).get("review_id")))
+				.collect(Collectors.toList());
+
+		return_map.put("myReviewList", myReviewList);
+		return_map.put("otherReviewList", otherReviewList);
+
+		return return_map;
 	}
 }

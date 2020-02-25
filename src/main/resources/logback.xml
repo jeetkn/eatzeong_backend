@@ -18,7 +18,9 @@
     <appender name="accessLog" class="ch.qos.logback.core.FileAppender">
         <file>log/access_log.log</file>
         <encoder>
-            <pattern>%msg%n</pattern>
+            <pattern>
+                %msg%n
+            </pattern>
         </encoder>
     </appender>
     <appender name="async" class="ch.qos.logback.classic.AsyncAppender">

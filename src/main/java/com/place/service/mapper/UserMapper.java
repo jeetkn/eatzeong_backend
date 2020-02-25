@@ -42,4 +42,22 @@ public interface UserMapper {
     UserDto selectUser(UserDto userDto) throws Exception;
 
     UserDto selectUserInfo(UserDto userDto) throws Exception;
+
+    void updateBookmarkDelFlag(UserDto userDto) throws Exception;
+
+    void updateAppReviewDelFlag(UserDto userDto) throws Exception;
+
+    void deleteLike(UserDto userDto) throws Exception;
+
+    void deleteBlackList(UserDto userDto) throws Exception;
+
+    void updateNickname(UserDto userDto) throws Exception;
+
+    void updatePhone(UserDto userDto) throws Exception;
+
+    List<Map<String, Object>> selectTermsDetailExecuteDate(String terms_code) throws Exception;
+
+    List<Map<String, Object>> selectTermsDetail(String terms_code) throws Exception;
+
+    String selectLoginDate(UserDto userDto) throws Exception;
 }

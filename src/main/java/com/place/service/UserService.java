@@ -18,7 +18,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.inject.Inject;
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -66,26 +68,42 @@ public class UserService implements UserServiceInterface {
 
     @Override
     public Map<String, Object> generalSignIn(UserDto userDto) throws Exception {
-        Map<String, Object> return_map = new HashMap<>();
-        log.info("userDto : {}", userDto.toString());
+        Map<String, Object> return_map = new LinkedHashMap<>();
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String before_90_date_string = LocalDateTime.now().minusDays(90).format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        Date before_90_date = format.parse(before_90_date_string);
+        String last_login_date = user.selectLoginDate(userDto);
+        Date today = format.parse(last_login_date);
+        int compare = today.compareTo(before_90_date);
+
         if(user.selectEmailCount(userDto) > 0 ) {
-            if (user.selectPasswordResetCnt(userDto) > 4) {
-                return_map.put("result", false);
-                return_map.put("result_message", "로그인 5회 연속 실패, 비밀번호 초기화 해주시기 바랍니다.");
-            } else {
-                String password = user.selectPassword(userDto);
-                if (userDto.getPassword().equals(password)) {
-                    user.updateLoginSuccess(userDto);
-                    return_map.put("result", true);
-                    return_map.put("result_message", "로그인 성공");
-                } else {
-                    user.updateLoginFailed(userDto);
+                if (user.selectPasswordResetCnt(userDto) > 4) {
                     return_map.put("result", false);
-                    return_map.put("result_message", "로그인 실패");
+                    return_map.put("login90_flag", false);
+                    return_map.put("result_message", "로그인 5회 연속 실패, 비밀번호 초기화 해주시기 바랍니다.");
+                } else {
+                    String password = user.selectPassword(userDto);
+                    if (userDto.getPassword().equals(password)) {
+                        if (compare >= 0) {
+                            user.updateLoginSuccess(userDto);
+                            return_map.put("result", true);
+                            return_map.put("login90_flag", true);
+                            return_map.put("result_message", "로그인 성공");
+                        } else {
+                            return_map.put("result", true);
+                            return_map.put("login90_flag", false);
+                            return_map.put("result_message", "마지막 로그인 한지 90일이 지났습니다.");
+                        }
+                    } else {
+                        user.updateLoginFailed(userDto);
+                        return_map.put("result", false);
+                        return_map.put("login90_flag", false);
+                        return_map.put("result_message", "로그인 실패");
+                    }
                 }
-            }
         }else{
             return_map.put("result", false);
+            return_map.put("login90_flag", false);
             return_map.put("result_message", "로그인 실패");
         }
 
@@ -127,28 +145,15 @@ public class UserService implements UserServiceInterface {
 
     @Override
     public List<Object> selectTerms() throws Exception{
-        List<Map<String, Object>> result_map = new ArrayList<>();
         List<Object> return_map = new ArrayList<>();
-
-        result_map = user.selectTerms();
-        result_map.stream()
-                .sorted(Comparator.comparing(c -> c.get("add_date").toString()))      // 입력 순 정렬
-//                .sorted((o1, o2) -> o2.get("add_date").toString().compareTo(o1.get("add_date").toString()))     // 최근 순 정렬
-                .forEach(res -> {
-                    log.info(res.toString());
-                    Map<String, Object> temp_map = new LinkedHashMap<>();
-                    Map<String, Object> contents_map = new HashMap<>();
-                    List<Map<String, Object>> contents_list = new ArrayList<>();
-                    temp_map.put("terms_id", res.get("terms_id").toString());
-                    temp_map.put("terms_division", res.get("terms_division").toString());
-                    temp_map.put("add_date", res.get("add_date").toString());
-                    temp_map.put("add_time", res.get("add_time").toString());
-                    temp_map.put("subject", res.get("terms_contents").toString());
-                    contents_map.put("contents", res.get("terms_contents"));
-                    contents_list.add(contents_map);
-                    temp_map.put("items", contents_list);
-                    return_map.add(temp_map);
-                });
+        List<Map<String, Object>> result_map = user.selectTerms();
+        for (Map<String, Object> res : result_map) {
+            log.info(res.toString());
+            Map<String, Object> temp_map = new LinkedHashMap<>();
+            temp_map.put("terms_code", res.get("terms_code").toString());
+            temp_map.put("terms_subject", res.get("terms_subject").toString());
+            return_map.add(temp_map);
+        }
 
         return return_map;
     }
@@ -208,6 +213,10 @@ public class UserService implements UserServiceInterface {
         String password = user.selectPassword(userDto);
         if(password.equals(userDto.getPassword())) {
             user.accountClose(userDto);
+            user.deleteBookmark(userDto);  // del_flag
+            user.deleteAppReview(userDto); // del_flag
+            user.deleteLike(userDto);
+            user.deleteBlackList(userDto);
             return_map.put("result_flag", true);
             return_map.put("result_message", "탈퇴 성공");
         }else{
@@ -268,5 +277,40 @@ public class UserService implements UserServiceInterface {
         attachment_map.put("sns_division", userDto.getSns_division());
 
         user.updateProfileImage(attachment_map);
+    }
+
+    @Override
+    public void updateNickname(UserDto userDto) throws Exception{
+        user.updateNickname(userDto);
+    }
+
+    @Override
+    public void updatePhone(UserDto userDto) throws Exception{
+        user.updatePhone(userDto);
+    }
+
+    @Override
+    public Map<String, Object> selectTermsDetail(String terms_code) throws Exception{
+        Map<String, Object> return_map = new LinkedHashMap<>();
+        List<Map<String, Object>> execute_date_list = new ArrayList<>();
+        List<Map<String, Object>> terms_contents_list = new ArrayList<>();
+
+        execute_date_list = user.selectTermsDetailExecuteDate(terms_code);
+        terms_contents_list = user.selectTermsDetail(terms_code);
+
+        return_map.put("add_date_list", execute_date_list);
+        return_map.put("terms_contents_list", terms_contents_list);
+
+        return return_map;
+    }
+
+    @Override
+    public Map<String, Object> forceSignIn(UserDto userDto) throws Exception{
+        Map<String, Object> return_dto = new LinkedHashMap<>();
+        user.updateLoginSuccess(userDto);
+
+        return_dto.put("result", true);
+        return_dto.put("message", "성공하였습니다.");
+        return return_dto;
     }
 }

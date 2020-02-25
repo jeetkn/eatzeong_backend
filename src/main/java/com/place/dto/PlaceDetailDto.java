@@ -24,6 +24,8 @@ public class PlaceDetailDto{
 	private String category_detail;
 	private String google_place_name;
 	private double rating;
+	private float google_rating;
+	private float app_rating;
 	private String thumbnail;
 	private String user_id;
 	private String sns_division;

@@ -1,39 +1,27 @@
 package com.place.controller;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URLDecoder;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
-import javax.inject.Inject;
-import javax.print.attribute.standard.Media;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.codec.multipart.FilePart;
-import org.springframework.http.codec.multipart.Part;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.place.dto.AppReviewDto;
 import com.place.dto.Dto;
 import com.place.service.AppReviewService;
-import com.place.util.DayCheck;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(value = "/v1")
@@ -41,7 +29,7 @@ import reactor.core.publisher.Mono;
 @SpringBootApplication(scanBasePackages = {"com.place.service"})
 @Slf4j
 public class AppReviewController {
-	
+
 	@Resource(name="com.place.service.AppReviewService")
 	AppReviewService appReview;
 
@@ -56,23 +44,23 @@ public class AppReviewController {
 			@PathVariable String place_id,
 			AppReviewDto dto){
 		Dto<List<Map<String, Object>>> return_dto_list = new Dto<List<Map<String, Object>>>();
-		
+
 		try {
 
 			dto.setPlace_id(place_id);
 			return_dto_list.setDataList(appReview.selectAppReviewList(dto));
-			
+
 		} catch (Exception e) {
 			var error = Maps.newHashMap(new HashMap<String, Object>());
 			error.put("error_message", e.getMessage());
-			
+
 			e.printStackTrace();
 			return_dto_list.setCode(500);
 			return_dto_list.setMessage("server error");
 			return_dto_list.setDataList(Lists.newArrayList(error));
 			return return_dto_list;
 		}
-		
+
 		return return_dto_list;
 	}
 
@@ -97,6 +85,39 @@ public class AppReviewController {
 
 		return return_dto;
 	}
+
+	@GetMapping("/myreviews/{place_id}/{review_id}")
+	public Dto<Map<String, Object>> getMyReviewsMore(@PathVariable String place_id,
+													 @PathVariable String review_id,
+													 AppReviewDto review_dto){
+		Dto<Map<String, Object>> return_dto = new Dto<>();
+
+		try {
+			if(review_dto.getUser_id() == null || review_dto.getUser_id().isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+			if(review_dto.getSns_division() == null || review_dto.getSns_division().isBlank())
+				throw new InvalidParameterException("Invalid parameter");
+
+			review_dto.setPlace_id(place_id);
+			review_dto.setReview_id(review_id);
+			review_dto.setReview_user_id((review_dto.getUser_id()));
+			log.info(review_dto.toString());
+			return_dto.setDataList(appReview.selectMyReviewListMore(review_dto));
+		} catch (InvalidParameterException e){
+			e.printStackTrace();
+			return_dto.setCode(400);
+			return_dto.setMessage("Invalid parameter");
+			return return_dto;
+		} catch (Exception e) {
+			e.printStackTrace();
+			return_dto.setCode(500);
+			return_dto.setMessage("server error");
+			return return_dto;
+		}
+
+		return return_dto;
+	}
+
 
 	/**
 	 * 리뷰 삽입
@@ -139,7 +160,7 @@ public class AppReviewController {
 	}
 
 	/**
-	 *	리뷰 수정 
+	 *	리뷰 수정
 	 */
 	@PutMapping(value = "/places/{place_id}/reviews/{review_id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
 	public Dto<Map<String, Object>> updateReview(
@@ -147,9 +168,10 @@ public class AppReviewController {
 			@PathVariable String review_id,
 			@RequestPart(name = "file", required=false) ArrayList<FilePart> files,
 			AppReviewDto app_review_dto) {
-		
+
 		Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
-		
+		ArrayList<String> image_url_list = new ArrayList<>();
+
 		try {
 			if(app_review_dto.getReview_user_id() == null || app_review_dto.getReview_user_id().isBlank())
 				throw new Exception("review_user_id 파라미터를 확인해주세요.");
@@ -158,27 +180,28 @@ public class AppReviewController {
 			if(app_review_dto.getRating_point() == 0)
 				throw new Exception("rating_point 파라미터를 확인해주세요. 0이면 안됩니다.");
 
+			image_url_list.addAll(app_review_dto.getImage_url());
 			app_review_dto.setPlace_id(place_id);
 			app_review_dto.setReview_id(review_id);
 			app_review_dto.setUser_id(app_review_dto.getReview_user_id());
 			app_review_dto.setReview_contents(URLDecoder.decode(app_review_dto.getReview_contents(), "UTF-8"));
-			appReview.reviewUpdate(app_review_dto, files);
+			appReview.reviewUpdate(app_review_dto, files, image_url_list);
 //			return_dto.setDataList(appReview.selectAppReview(app_review_dto));
-			
+
 		} catch (Exception e) {
 			var error = Maps.newHashMap(new HashMap<String, Object>());
 			error.put("error_message", e.getMessage());
-			
+
 			e.printStackTrace();
 			return_dto.setCode(500);
 			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
-		
+
 		return return_dto;
 	}
-	
+
 	/**
 	 * 리뷰 삭제
 	 */
@@ -186,10 +209,10 @@ public class AppReviewController {
 	public Dto<Map<String, Object>> deleteReview(@PathVariable String place_id,
 												 @PathVariable String review_id,
 												 AppReviewDto app_review_dto){
-		
+
 		Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
 		Map<String, Object> return_map = Maps.newHashMap();
-		
+
 		try {
 			if(app_review_dto.getReview_user_id() == null || app_review_dto.getReview_user_id().isBlank())
 				throw new Exception("review_user_id 파라미터를 확인해주세요.");
@@ -197,21 +220,21 @@ public class AppReviewController {
 			app_review_dto.setReview_id(review_id);
 			app_review_dto.setPlace_id(place_id);
 			appReview.deleteAppReview(app_review_dto);
-			
+
 			return_map.put("result_message", "리뷰 삭제 성공");
 			return_dto.setDataList(return_map);
-			
+
 		} catch (Exception e) {
 			var error = Maps.newHashMap(new HashMap<String, Object>());
 			error.put("error_message", e.getMessage());
-			
+
 			e.printStackTrace();
 			return_dto.setCode(500);
 			return_dto.setMessage("server error");
 			return_dto.setDataList(error);
 			return return_dto;
 		}
-		
+
 		return return_dto;
 	}
 

@@ -31,4 +31,12 @@ public interface UserServiceInterface{
     Map<String, Object> updateProfile(UserDto userDto, FilePart file) throws Exception;
 
     Map<String, Object> selectUserInfo(UserDto userDto) throws Exception;
+
+    void updateNickname(UserDto userDto) throws Exception;
+
+    void updatePhone(UserDto userDto) throws Exception;
+
+    Map<String, Object> selectTermsDetail(String terms_code) throws Exception;
+
+    Map<String, Object> forceSignIn(UserDto userDto) throws Exception;
 }

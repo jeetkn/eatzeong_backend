@@ -12,16 +12,16 @@
 				and  keyword like  '%' || #{keyword} || '%'
 			group by keyword
 	</select>
-	
+
    	<!-- 지역 검색 -->
    	<select id="selectArea" resultType="java.util.HashMap">
-			select 
-				parent_area, 
-				area, 
-				area_name 
-			from 
-				area_tb 
-			where 
+			select
+				parent_area,
+				area,
+				area_name
+			from
+				area_tb
+			where
 				del_flag != 'Y'
 			order by parent_area, area
 	</select>
@@ -114,7 +114,7 @@
 			and del_flag != 'Y'
 			and portal = #{portal}
 			and keyword = #{query}
-		order by random()
+-- 		order by random()
 		<choose>
 			<when test="size > 0">
 				limit #{size}::int
@@ -133,7 +133,7 @@
 			and portal = #{portal}
 			and keyword = #{query}
 	</select>
-	
+
    	<!-- 북마크 포털 리뷰 검색(youtube) -->
    	<select id="selectBookmarkPortalReviews" resultType="java.util.HashMap">
 			select distinct
@@ -154,14 +154,14 @@
 			join portal_review_tb review on
 				bookmark.id = review.review_id
 				and review.del_flag != 'Y'
-			where 
+			where
 				1 = 1
 				and bookmark.user_id = #{user_id}
 				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
-	
+
    	<!-- 북마크 포털 블로그 검색(naver, tistory) -->
    	<select id="selectBookmarkPortalBlogs" resultType="java.util.HashMap">
 			select distinct
@@ -183,14 +183,14 @@
 			join portal_blog_tb review on
 				bookmark.id = review.review_id
 				and review.del_flag != 'Y'
-			where 
+			where
 				1 = 1
 				and bookmark.user_id = #{user_id}
 				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
-	
+
    	<!-- 북마크 자체 리뷰 검색 -->
    	<select id="selectBookmarkAppReviews" resultType="java.util.HashMap">
 			select distinct
@@ -213,14 +213,14 @@
 			join app_review_tb review on
 				bookmark.id = review.review_id
 				and review.del_flag != 'Y'
-			where 
+			where
 				1 = 1
 				and bookmark.user_id = #{user_id}
 				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
 	</select>
-	
+
    	<!-- 북마크 매장 검색 -->
    	<select id="selectBookmarkPlaces" resultType="java.util.HashMap">
 			select distinct
@@ -229,8 +229,16 @@
 				place.place_name,
 				place.open_hours,
 				place.category,
-				avgReviewRating(bookmark.place_id) as rating_point,
-				getthumbnail(bookmark.place_id) as thumbnail
+-- 				avgReviewRating(bookmark.place_id) as rating_point,
+				trunc((select avg(g_rating) from portal_review_tb where place_id = place.place_id and portal = 'GOOGLE' group by portal), 1) as google_rating ,
+				trunc(avgreviewrating(place.place_id), 1) as app_rating,
+				getthumbnail(bookmark.place_id) as thumbnail,
+				(select count(*) from portal_blog_tb where del_flag != 'Y' and portal = 'NAVER' and place_id = bookmark.place_id) as naver_blog_count,
+				(select count(*) from portal_blog_tb where del_flag != 'Y' and portal = 'DAUM' and place_id = bookmark.place_id) as daum_blog_count,
+				(select count(*) from portal_review_tb where del_flag != 'Y' and portal = 'GOOGLE' and place_id = bookmark.place_id) as google_review_count,
+				(select count(*) from portal_review_tb where del_flag != 'Y' and portal = 'YOUTUBE' and place_id = bookmark.place_id) as youtube_review_count,
+				(select count(*) from app_review_tb  where del_flag != 'Y' and place_id = bookmark.place_id) as app_review_count,
+				bookmark.add_date
 			from
 				bookmark_tb bookmark
 			join places_tb place on
@@ -242,12 +250,13 @@
 				and bookmark.sns_division = #{sns_division}
 				and bookmark.gubun = #{gubun}
 				and bookmark.del_flag != 'Y'
+			order by bookmark.add_date desc
 	</select>
-	
+
 	<!-- 북마크 리뷰 삽입(youtube, naver, tistory, app) -->
 	<insert id="insertBookmarkReviewBlog" parameterType="HashMap">
 		insert into
-			bookmark_tb 
+			bookmark_tb
 			(place_id,
 			add_user_id,
 			add_time,
@@ -268,11 +277,11 @@
 			#{id},
 			#{sns_division});
 	</insert>
-	
+
 	<!-- 북마크 매장 삽입 -->
 	<insert id="insertBookmarkPlaces" parameterType="HashMap">
 		insert into
-			bookmark_tb 
+			bookmark_tb
 			(place_id,
 			add_user_id,
 			add_time,
@@ -291,10 +300,10 @@
 			#{user_id},
 			#{sns_division});
 	</insert>
-	
+
 	<!-- 매장 북마크 카운트 -->
 	<select id="selectBookmarkPlaceCount" resultType="Int" parameterType="HashMap">
-		select 
+		select
 			count(*) as cnt
 		from
 			bookmark_tb
@@ -304,10 +313,10 @@
 			and del_flag != 'Y'
 			and sns_division = #{sns_division}
 	</select>
-	
+
 	<!-- 리뷰 북마크 카운트 -->
 	<select id="selectBookmarkReviewBlogCount" resultType="Int" parameterType="HashMap">
-		select 
+		select
 			count(*) as cnt
 		from
 			bookmark_tb
@@ -318,7 +327,7 @@
 			and del_flag != 'Y'
 			and sns_division = #{sns_division}
 	</select>
-	
+
 	<!-- 북마크 매장 삭제 -->
 	<delete id="updateBookmarkPlaces" parameterType="HashMap">
 		delete
@@ -330,7 +339,7 @@
 			and user_id = #{user_id}
 			and sns_division = #{sns_division}
 	</delete>
-	
+
 	<!-- 북마크 리뷰 삭제 -->
 	<delete id="updateBookmarkReviewBlog" parameterType="HashMap">
 		delete
@@ -366,7 +375,7 @@
 			longitude,
 			place_address ,
 			road_place_address ,
-			(select trunc(avg(g_rating),1) from portal_review_tb where portal = 'G' and place_id = place.place_id and del_flag != 'Y') as google_rating,
+			(select trunc(avg(g_rating),1) from portal_review_tb where portal = 'GOOGLE' and place_id = place.place_id and del_flag != 'Y') as google_rating,
 			avgreviewrating(place_id) as app_review_rating,
 			(select	thumbnail_url from portal_blog_tb where place_id = place.place_id and portal = 'DAUM' limit 1) as blog_thumbnail,
 			getthumbnail(place.place_id ) as app_thumbnail
@@ -381,7 +390,7 @@
 			and delete_flag != 'Y'
 		<choose>
 			<when test="size > 0">
-				order by random()
+-- 				order by random()
 				limit #{size}::int
 			</when>
 		</choose>

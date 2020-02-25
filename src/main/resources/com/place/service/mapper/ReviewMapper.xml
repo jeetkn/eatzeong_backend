@@ -55,7 +55,7 @@
 		</choose>
 		)
 	</insert>
-	
+
 	<!-- review 전체 검색 -->
 	<select id="selectReviews" resultType="com.place.dto.PortalReviewDto" parameterType="com.place.dto.PlaceDetailDto">
 		(SELECT
@@ -145,7 +145,7 @@
 		</choose>
 		and del_flag != 'Y'
 	</select>
-	
+
 	<!-- 앱 리뷰 Count -->
 	<select id="selectAppReviewCount" resultType="int" parameterType="com.place.dto.AppReviewDto">
 		SELECT
@@ -157,10 +157,10 @@
 		and sns_division = #{sns_division}
 		and del_flag != 'Y'
 	</select>
-	
-	<!--  appReview Insert --> 
+
+	<!--  appReview Insert -->
 	<insert id="insertAppReview" parameterType="com.place.dto.AppReviewDto">
-		INSERT INTO 
+		INSERT INTO
 			app_review_tb(
 				review_id,
 				review_contents,
@@ -201,10 +201,10 @@
 			, #{place_id}
 			)
 	</insert>
-	
-	<!--  appReview attachment Insert --> 
+
+	<!--  appReview attachment Insert -->
 	<insert id="insertAppReviewAttachment" parameterType="HashMap">
-		INSERT INTO 
+		INSERT INTO
 			attachments_list_tb(
 				attach_number,
 				attach_seq,
@@ -238,8 +238,8 @@
 			, 'N'
 			)
 	</insert>
-	
-	
+
+
 	<!-- 앱 리뷰 검색 -->
 	<select id="selectAppReview"	resultType="com.place.dto.AppReviewDto"	parameterType="com.place.dto.AppReviewDto">
 		select
@@ -259,17 +259,24 @@
 			getappreviewlikeflag(app_review.review_id, #{user_id}, #{sns_division}) as like_flag
 		from
 			app_review_tb app_review
-		left join 
+		left join
 			attachments_list_tb attachment
-		on 
-			app_review.attach_number = attachment.attach_number	
+		on
+			app_review.attach_number = attachment.attach_number
 		where 1 = 1
+	<choose>
+		<when test="method != null and method.equals('selectMyReviewListMore')">
+			and review_id = #{review_id}
+		</when>
+		<otherwise>
 			and place_id = #{place_id}
+		</otherwise>
+	</choose>
 			and review_user_id = #{review_user_id}
 			and sns_division = #{sns_division}
 			and app_review.del_flag != 'Y'
 	</select>
-	
+
 	<!-- 앱 리뷰 전체 검색 -->
 	<select id="selectAppReviewList"	resultType="com.place.dto.AppReviewDto"	parameterType="com.place.dto.AppReviewDto">
 		select
@@ -289,15 +296,22 @@
 			getappreviewlikeflag(app_review.review_id, #{user_id}, #{sns_division}) as like_flag
 		from
 			app_review_tb app_review
-		left join 
+		left join
 			attachments_list_tb attachment
-		on 
-			app_review.attach_number = attachment.attach_number	
-		where 1=1
+		on
+			app_review.attach_number = attachment.attach_number
+		where
+		      1=1
+	<choose>
+		<when test="method != null and method.equals('selectMyReviewListMore')">
+			and app_review.review_user_id = #{review_user_id}
+		  	and app_review.sns_division = #{sns_division}
+		</when>
+	</choose>
 			and	app_review.place_id = #{place_id}
 			and app_review.del_flag != 'Y'
 	</select>
-	
+
 	<!-- 앱 리뷰 수정 -->
 	<update id="updateAppReview" parameterType="com.place.dto.AppReviewDto">
 		update
@@ -319,7 +333,7 @@
 		where
 			review_id = #{review_id};
 	</update>
-	
+
 	<!-- 앱 리뷰 삭제 -->
 	<update id="deleteAppReview" parameterType="com.place.dto.AppReviewDto">
 		update

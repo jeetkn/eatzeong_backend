@@ -28,4 +28,5 @@ public class AppReviewDto{
 	private List<String> image_url;
 	private String category;
 	private String category_name;
+	private String method;
 }

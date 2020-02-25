@@ -25,16 +25,17 @@ import java.util.*;
 @Slf4j
 public class UserController {
 
-    @Resource(name="com.place.service.UserService")
+    @Resource(name = "com.place.service.UserService")
     UserService userService;
 
     /**
      * 일반사용자 회원가입
+     *
      * @param userDto
      * @return
      */
     @PostMapping(value = "users/general/signup")
-    public Dto<Map<String, Object>> generalSignUp(UserDto userDto){
+    public Dto<Map<String, Object>> generalSignUp(UserDto userDto) {
         Dto<Map<String, Object>> return_dto = new Dto<>();
 
         try {
@@ -53,12 +54,12 @@ public class UserController {
 
             userService.insertGeneralUser(userDto);
 
-        }catch (ExistException e){
+        } catch (ExistException e) {
             e.printStackTrace();
             return_dto.setCode(409);
             return_dto.setMessage("Already exist data");
             return return_dto;
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -75,16 +76,17 @@ public class UserController {
 
     /**
      * 일반사용자 로그인
+     *
      * @param userDto
      * @param user_id
      * @return
      */
     @GetMapping(value = "/users/general/signin")
-    public Dto<Map<String, Object>> generalSignIn(UserDto userDto, @RequestParam String user_id){
+    public Dto<Map<String, Object>> generalSignIn(UserDto userDto, @RequestParam String user_id) {
         Dto<Map<String, Object>> return_dto = new Dto<>();
 
-        try{
-            if("".equals(user_id.trim())){
+        try {
+            if ("".equals(user_id.trim())) {
                 Map<String, Object> temp_map = new LinkedHashMap<>();
                 temp_map.put("result", false);
                 temp_map.put("result_message", "user_id를 확인해주세요.");
@@ -97,7 +99,7 @@ public class UserController {
             userDto.setSns_division("C");
             return_dto.setDataList(userService.generalSignIn(userDto));
 
-        }catch (Exception e){
+        } catch (Exception e) {
             var error = Maps.newHashMap(new HashMap<String, Object>());
             error.put("error_message", e.getMessage());
 
@@ -113,14 +115,15 @@ public class UserController {
 
     /**
      * 아이디 찾기
+     *
      * @param userDto
      * @return
      */
     @GetMapping("/users/general/findid")
-    public Dto<List<String>> findId(UserDto userDto){
+    public Dto<List<String>> findId(UserDto userDto) {
         Dto<List<String>> return_dto = new Dto<>();
 
-        try{
+        try {
             if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
                 throw new InvalidParameterException("Invalid parameter");
             if (userDto.getBirthday() == null || userDto.getBirthday().isBlank())
@@ -128,7 +131,7 @@ public class UserController {
 
             return_dto.setDataList(userService.findId(userDto));
 
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -145,14 +148,15 @@ public class UserController {
 
     /**
      * 계정 여부 체크
+     *
      * @param userDto
      * @return
      */
     @GetMapping("/users/general/accountcheck")
-    public Dto<Map<String,Object>> accountCheck(UserDto userDto){
-        Dto<Map<String,Object>> return_dto = new Dto<>();
+    public Dto<Map<String, Object>> accountCheck(UserDto userDto) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
 
-        try{
+        try {
             if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
                 throw new InvalidParameterException("Invalid parameter");
             if (userDto.getEmail() == null || userDto.getEmail().isBlank())
@@ -160,7 +164,7 @@ public class UserController {
 
             return_dto.setDataList(userService.finePassword(userDto));
 
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -177,14 +181,15 @@ public class UserController {
 
     /**
      * 일반사용자 탈퇴하기
+     *
      * @param userDto
      * @return
      */
     @PutMapping("/users/general/accountclose")
-    public Dto<Map<String, Object>> accountClose(UserDto userDto){
-        Dto<Map<String,Object>> return_dto = new Dto<>();
+    public Dto<Map<String, Object>> accountClose(UserDto userDto) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
 
-        try{
+        try {
             if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
                 throw new InvalidParameterException("Invalid parameter");
             if (userDto.getPassword() == null || userDto.getPassword().isBlank())
@@ -194,7 +199,110 @@ public class UserController {
             userDto.setEmail(userDto.getUser_id());
             return_dto.setDataList(userService.accountClose(userDto));
 
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+        return return_dto;
+    }
+
+    /**
+     * 일반사용자 닉네임 변경
+     *
+     * @param userDto
+     * @return
+     */
+    @PutMapping("/users/general/nickname")
+    public Dto<Map<String, Object>> updateNickname(UserDto userDto) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try {
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getNickname() == null || userDto.getNickname().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            userDto.setSns_division("C");
+            userService.updateNickname(userDto);
+
+        } catch (InvalidParameterException e) {
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+        return return_dto;
+    }
+
+    /**
+     * 일반사용자 전화번호 변경
+     *
+     * @param userDto
+     * @return
+     */
+    @PutMapping("/users/general/phone")
+    public Dto<Map<String, Object>> updatePhone(UserDto userDto) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try {
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getPhone_number() == null || userDto.getPhone_number().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            userDto.setSns_division("C");
+            userService.updatePhone(userDto);
+
+        } catch (InvalidParameterException e) {
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+        return return_dto;
+    }
+
+    /**
+     * 일반사용자 비밀번호 수정
+     *
+     * @param userDto
+     * @return
+     */
+    @PutMapping(value = "/users/general/password")
+    public Dto<Map<String, Object>> updatePassword(UserDto userDto) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+        Map<String, Object> return_map = new HashMap<>();
+
+        try {
+            userDto.setUser_id(userDto.getEmail());
+            if (userDto.getEmail() == null || userDto.getEmail().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+            if (userDto.getSns_division() == null || userDto.getSns_division().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            userService.updatePassword(userDto);
+            return_map.put("result_flag", true);
+            return_map.put("result_message", "비밀번호 변경 성공");
+            return_dto.setDataList(return_map);
+
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -209,42 +317,12 @@ public class UserController {
         return return_dto;
     }
 
-    /**
-     * 일반사용자 비밀번호 수정
-     * @param userDto
-     * @return
-     */
-    @PutMapping(value = "/users/general/password")
-    public Dto<Map<String, Object>> updatePassword(UserDto userDto){
-        Dto<Map<String, Object>> return_dto = new Dto<>();
-        Map<String, Object> return_map = new HashMap<>();
-
-        try{
-            userService.updatePassword(userDto);
-            return_map.put("result_flag", true);
-            return_map.put("result_message", "비밀번호 변경 성공");
-            return_dto.setDataList(return_map);
-
-        }catch (Exception e){
-            var error = Maps.newHashMap(new HashMap<String, Object>());
-            error.put("error_message", e.getMessage());
-
-            e.printStackTrace();
-            return_dto.setCode(500);
-            return_dto.setMessage("server error");
-            return_dto.setDataList(error);
-            return return_dto;
-        }
-
-        return return_dto;
-    }
-
     @PutMapping(value = "/users/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Dto<Map<String, Object>> updateProfileImage(@RequestPart(name = "file", required=false) FilePart file,
+    public Dto<Map<String, Object>> updateProfileImage(@RequestPart(name = "file", required = false) FilePart file,
                                                        UserDto userDto) throws IOException {
         Dto<Map<String, Object>> return_dto = new Dto<>();
 
-        try{
+        try {
             if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
                 throw new InvalidParameterException("Invalid parameter");
             if (userDto.getSns_division() == null || userDto.getSns_division().isBlank())
@@ -254,7 +332,7 @@ public class UserController {
 
             return_dto.setDataList(userService.updateProfile(userDto, file));
 
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -271,16 +349,17 @@ public class UserController {
 
     /**
      * 공지사항 조회
+     *
      * @return
      */
     @GetMapping(value = "/users/notice")
-    public Dto<List<Object>> getNotice(){
+    public Dto<List<Object>> getNotice() {
         Dto<List<Object>> return_dto = new Dto<>();
         Map<String, Object> return_map = new HashMap<>();
 
-        try{
+        try {
             return_dto.setDataList(userService.selectNotice());
-        }catch (Exception e){
+        } catch (Exception e) {
             var error = Maps.newHashMap(new HashMap<String, Object>());
             error.put("error_message", e.getMessage());
 
@@ -295,10 +374,10 @@ public class UserController {
     }
 
     @GetMapping("/users/user")
-    public Dto<Map<String, Object>> selectUserInfo(UserDto userDto){
+    public Dto<Map<String, Object>> selectUserInfo(UserDto userDto) {
         Dto<Map<String, Object>> return_dto = new Dto<>();
 
-        try{
+        try {
             if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
                 throw new InvalidParameterException("Invalid parameter");
             if (userDto.getSns_division() == null || userDto.getSns_division().isBlank())
@@ -306,7 +385,7 @@ public class UserController {
 
             return_dto.setDataList(userService.selectUserInfo(userDto));
 
-        } catch (InvalidParameterException e){
+        } catch (InvalidParameterException e) {
             e.printStackTrace();
             return_dto.setCode(400);
             return_dto.setMessage("Invalid parameter");
@@ -322,13 +401,13 @@ public class UserController {
     }
 
     @GetMapping(value = "/users/terms")
-    public Dto<List<Object>> getTerms(){
+    public Dto<List<Object>> getTerms() {
         Dto<List<Object>> return_dto = new Dto<>();
         Map<String, Object> return_map = new HashMap<>();
 
-        try{
+        try {
             return_dto.setDataList(userService.selectTerms());
-        }catch (Exception e){
+        } catch (Exception e) {
             var error = Maps.newHashMap(new HashMap<String, Object>());
             error.put("error_message", e.getMessage());
 
@@ -338,18 +417,32 @@ public class UserController {
             return_dto.setDataList(Arrays.asList(error));
             return return_dto;
         }
+        return return_dto;
+    }
 
+    @GetMapping(value = "/users/terms/{terms_code}")
+    public Dto<Map<String, Object>> selectTermsDetail(@PathVariable String terms_code) {
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try {
+            return_dto.setDataList(userService.selectTermsDetail(terms_code));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
         return return_dto;
     }
 
     @GetMapping(value = "/users/faqs")
-    public Dto<List<Object>> getFaqs(){
+    public Dto<List<Object>> getFaqs() {
         Dto<List<Object>> return_dto = new Dto<>();
         Map<String, Object> return_map = new HashMap<>();
 
-        try{
+        try {
             return_dto.setDataList(userService.selectFaqs());
-        }catch (Exception e){
+        } catch (Exception e) {
             var error = Maps.newHashMap(new HashMap<String, Object>());
             error.put("error_message", e.getMessage());
 
@@ -362,4 +455,33 @@ public class UserController {
 
         return return_dto;
     }
+
+    @GetMapping("/users/general/signinforce")
+    public Dto<Map<String, Object>> forceSignIn(UserDto userDto) {
+
+        Dto<Map<String, Object>> return_dto = new Dto<>();
+
+        try {
+            if (userDto.getUser_id() == null || userDto.getUser_id().isBlank())
+                throw new InvalidParameterException("Invalid parameter");
+
+            userDto.setEmail(userDto.getUser_id());
+            userDto.setSns_division("C");
+            return_dto.setDataList(userService.forceSignIn(userDto));
+
+        } catch (InvalidParameterException e) {
+            e.printStackTrace();
+            return_dto.setCode(400);
+            return_dto.setMessage("Invalid parameter");
+            return return_dto;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return_dto.setCode(500);
+            return_dto.setMessage("server error");
+            return return_dto;
+        }
+
+        return return_dto;
+    }
+
 }

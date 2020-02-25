@@ -81,4 +81,40 @@ public class UserRepository {
     public UserDto selectUserInfo(UserDto userDto) throws Exception{
         return mapper.selectUserInfo(userDto);
     }
+
+    public void deleteBookmark(UserDto userDto) throws Exception{
+        mapper.updateBookmarkDelFlag(userDto);
+    }
+
+    public void deleteAppReview(UserDto userDto) throws Exception{
+        mapper.updateAppReviewDelFlag(userDto);
+    }
+
+    public void deleteLike(UserDto userDto) throws Exception{
+        mapper.deleteLike(userDto);
+    }
+
+    public void deleteBlackList(UserDto userDto) throws Exception {
+        mapper.deleteBlackList(userDto);
+    }
+
+    public void updateNickname(UserDto userDto) throws Exception{
+        mapper.updateNickname(userDto);
+    }
+
+    public void updatePhone(UserDto userDto) throws Exception{
+        mapper.updatePhone(userDto);
+    }
+
+    public List<Map<String, Object>> selectTermsDetailExecuteDate(String terms_code) throws Exception{
+        return mapper.selectTermsDetailExecuteDate(terms_code);
+    }
+
+    public List<Map<String, Object>> selectTermsDetail(String terms_code) throws Exception{
+        return mapper.selectTermsDetail(terms_code);
+    }
+
+    public String selectLoginDate(UserDto userDto) throws Exception{
+        return mapper.selectLoginDate(userDto);
+    }
 }

@@ -335,14 +335,14 @@ public class CommonController {
      */
     @PostMapping(value = "/bookmarks")
     public Dto<Map<String, Object>> insertBookmark(
-//			@PathVariable String place_id, 
+//			@PathVariable String place_id,
 //			@RequestParam(required = false) String user_id,
 //			@RequestParam(defaultValue = "place") String gubun		// place, youtube, naver, tistory, app
             @RequestParam Map<String, String> allRequestParams) {
         Dto<Map<String, Object>> return_dto = new Dto<Map<String, Object>>();
         Map<String, Object> return_map = Maps.newHashMap();
 
-        List<String> gubun_list = Lists.newArrayList("place", "naver", "youtube", "tistory", "app");
+        List<String> gubun_list = Lists.newArrayList("place", "naver", "youtube", "daum", "app");
 
         try {
             if (!allRequestParams.containsKey("user_id") || allRequestParams.get("user_id") == null || allRequestParams.get("user_id").isBlank()) {
@@ -384,7 +384,7 @@ public class CommonController {
             } else {
                 if (!allRequestParams.containsKey("id") || allRequestParams.get("id") == null || allRequestParams.get("id").isBlank()) {
                     return_dto.setCode(400);
-                    return_dto.setMessage("gubun 값이 youtube, naver, blog, app일 경우 id 파라미터는 필수입니다. 확인해주세요.");
+                    return_dto.setMessage("gubun 값이 youtube, naver, daum, app일 경우 id 파라미터는 필수입니다. 확인해주세요.");
                     return_map.put("result_message", "parameter failed");
                     return_dto.setDataList(return_map);
                     return return_dto;

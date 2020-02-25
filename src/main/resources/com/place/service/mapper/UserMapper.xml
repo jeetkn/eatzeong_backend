@@ -183,7 +183,8 @@
             password_reset_cnt = 0,
             password_update_date = current_date,
             update_date = current_date,
-            update_time = current_time
+            update_time = current_time,
+            recently_login_date = current_date
         where
             1 = 1
             and user_id = #{email}
@@ -201,6 +202,68 @@
         where
             1 = 1
             and secession_flag != 'Y'
+            and user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </update>
+
+    <update id="updateAppReviewDelFlag" parameterType="com.place.dto.UserDto">
+        update
+            app_review_tb
+        set
+            del_flag = 'Y'
+        where
+            1 = 1
+            and add_user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </update>
+
+    <update id="updateBookmarkDelFlag" parameterType="com.place.dto.UserDto">
+        update
+            bookmark_tb
+        set
+            del_flag = 'Y'
+        where
+            1 = 1
+            and user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </update>
+
+    <delete id="deleteLike" parameterType="com.place.dto.UserDto">
+        delete
+            from appreview_like_tb
+        where
+            1 = 1
+            and add_user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </delete>
+
+    <delete id="deleteBlackList" parameterType="com.place.dto.UserDto">
+        delete
+            from portal_blacklist_tb
+        where
+            1 = 1
+            and user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </delete>
+
+    <update id="updateNickname" parameterType="com.place.dto.UserDto">
+        update
+            general_users_tb
+        set
+            nickname = #{nickname}
+        where
+            1 = 1
+            and user_id = #{user_id}
+            and sns_division = #{sns_division}
+    </update>
+
+    <update id="updatePhone" parameterType="com.place.dto.UserDto">
+        update
+            general_users_tb
+        set
+            phone_no = #{phone_number}
+        where
+            1 = 1
             and user_id = #{user_id}
             and sns_division = #{sns_division}
     </update>
@@ -249,14 +312,12 @@
     </select>
 
     <select id="selectTerms" resultType="HashMap">
-        select
-            *
-        from
-            terms_of_service_tb
-        where
-            1 = 1
-            and del_flag != 'Y'
-        order by terms_division, add_date
+        select terms_code
+             , getcodetext(terms_code, 'terms') as terms_subject
+        from terms_of_service_tb
+        where del_flag != 'Y'
+        group by terms_code
+        order by terms_code;
     </select>
 
     <select id="selectFaqs" resultType="HashMap">
@@ -267,5 +328,29 @@
         where
             1 = 1
             and del_flag != 'Y'
+    </select>
+
+    <select id="selectTermsDetailExecuteDate" resultType="HashMap" parameterType="String">
+        select terms_id, terms_code, execute_date
+        from terms_of_service_tb
+        where del_flag != 'Y'
+          and terms_code = #{terms_code}
+        order by execute_date desc
+    </select>
+
+    <select id="selectTermsDetail" resultType="HashMap" parameterType="String">
+        select terms_id, terms_code, terms_contents
+        from terms_of_service_tb
+        where del_flag != 'Y'
+          and terms_code = #{terms_code}
+        order by execute_date desc
+    </select>
+
+    <select id="selectLoginDate" resultType="String" parameterType="com.place.dto.UserDto">
+        select recently_login_date
+        from general_users_tb
+        where secession_flag != 'Y'
+          and user_id = #{user_id}
+          and sns_division = #{sns_division}
     </select>
 </mapper>

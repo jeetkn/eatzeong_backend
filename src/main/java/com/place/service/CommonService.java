@@ -97,7 +97,7 @@ public class CommonService implements CommonServiceInterface {
 //                return_map.put("result_count", 0);
 //                return_map.put("result_message", "검색결과 없음");
 //                result_list.add(null);
-                return null;
+                return new ArrayList<>();
             } else {
                 result_list = parseBookmarks(query_list, allRequestParams.get("gubun"));
                 return result_list;
@@ -196,7 +196,7 @@ public class CommonService implements CommonServiceInterface {
 
         if (gubun.equals("youtube")) {
             for (Map<String, Object> map : query_list) {
-                Map<String, Object> return_map = Maps.newHashMap();
+                Map<String, Object> return_map = new LinkedHashMap<>();
 
 //                return_map.put("result_count", query_list.size());
                 return_map.put("place_id", map.get("place_id"));
@@ -250,26 +250,35 @@ public class CommonService implements CommonServiceInterface {
             }
         } else {
             for (Map<String, Object> map : query_list) {
-                Map<String, Object> return_map = Maps.newHashMap();
+                Map<String, Object> return_map = new LinkedHashMap<>();
 
 //                return_map.put("result_count", query_list.size());
-                return_map.put("place_id", map.get("place_id"));
                 return_map.put("gubun", map.get("gubun"));
+                return_map.put("place_id", map.get("place_id"));
                 return_map.put("place_name", map.get("place_name"));
                 if (!(map.get("open_hours") == null || map.get("open_hours") == ""))
                     return_map.put("open_hours", map.get("open_hours"));
                 else
                     return_map.put("open_hours", "");
 
-                if (!(map.get("rating_point") == null || map.get("rating_point") == ""))
-                    return_map.put("rating_point", String.format("%.1f", map.get("rating_point")));
+                if (!(map.get("google_rating") == null || map.get("google_rating") == ""))
+                    return_map.put("google_rating", map.get("google_rating"));
                 else
-                    return_map.put("rating_point", "");
+                    return_map.put("rating_point", 0.0);
+                if (!(map.get("app_rating") == null || map.get("app_rating") == ""))
+                    return_map.put("app_rating", map.get("app_rating"));
+                else
+                    return_map.put("app_rating", 0.0);
 
                 if (!(map.get("thumbnail") == null || map.get("thumbnail") == ""))
                     return_map.put("thumbnail", HOST_URL + "/review/" + map.get("thumbnail"));
                 else
                     return_map.put("thumbnail", "");
+                return_map.put("naver_blog_count", map.get("naver_blog_count"));
+                return_map.put("daum_blog_count", map.get("daum_blog_count"));
+                return_map.put("google_review_count", map.get("google_review_count"));
+                return_map.put("youtube_review_count", map.get("youtube_review_count"));
+                return_map.put("app_review_count", map.get("app_review_count"));
 
                 result_list.add(return_map);
             }
@@ -425,7 +434,7 @@ public class CommonService implements CommonServiceInterface {
                             dto.setKeyword(request_param.get("query"));
                             dto.setPortal(request_param.get("portal").toUpperCase());
                             dto.setAuthor(map.get("videoobject").get(0).get("channelid"));
-                            dto.setPublished_date(map.get("videoobject").get(0).get("uploaddate"));
+                            dto.setPublished_date(map.get("videoobject").get(0).get("datepublished"));
                             dto.setThumbnail(map.get("videoobject").get(0).get("thumbnailurl"));
                             dto.setTitle(map.get("metatags").get(0).get("title"));
                             dto.setDescription(map.get("metatags").get(0).get("og:description"));

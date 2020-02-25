@@ -1,5 +1,6 @@
 package com.place.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -21,46 +22,46 @@ public class AppReviewRepository {
 
 	/**
 	 * 리뷰 count 조회
-	 * 
+	 *
 	 * @param app_review_dto
 	 * @return
 	 */
 	public int selectAppReviewCount(AppReviewDto app_review_dto) throws Exception{
 		return mapper.selectAppReviewCount(app_review_dto);
 	}
-	
+
 	/**
 	 * 리뷰 단일 검색
-	 * 
+	 *
 	 * @param app_review_dto
 	 * @return
 	 */
 	public List<AppReviewDto> selectAppReview(AppReviewDto app_review_dto) throws Exception {
 		return mapper.selectAppReview(app_review_dto);
 	}
-	
+
 	/**
 	 * 리뷰 전체 검색
-	 * 
+	 *
 	 * @param app_review_dto
 	 * @return
 	 */
 	public List<AppReviewDto> selectAppReviewList(AppReviewDto app_review_dto) throws Exception{
 		return mapper.selectAppReviewList(app_review_dto);
 	}
-	
+
 	/**
 	 * 리뷰 삽입
-	 * 
+	 *
 	 * @param app_review_dto
 	 */
 	public void insertAppReview(AppReviewDto app_review_dto) throws Exception {
 		mapper.insertAppReview(app_review_dto);
 	}
-	
+
 	/**
 	 * 첨부파일 삽입
-	 * 
+	 *
 	 * @param attachment_list
 	 */
 	public void insertAppReviewAttachment(List<Map<String, String>> attachment_list) throws Exception {

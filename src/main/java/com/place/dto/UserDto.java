@@ -13,4 +13,6 @@ public class UserDto {
     private String phone_number;
     private String sns_division;
     private String profile_image;
+    private String join_date;
+    private String join_time;
 }
